@@ -1,9 +1,6 @@
 package ch.luca008.SpigotApi;
 
-import ch.luca008.SpigotApi.Api.JSONApi;
-import ch.luca008.SpigotApi.Api.MainApi;
-import ch.luca008.SpigotApi.Api.ScoreboardAPI;
-import ch.luca008.SpigotApi.Api.TeamAPI;
+import ch.luca008.SpigotApi.Api.*;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
@@ -24,6 +21,7 @@ public class SpigotApi extends JavaPlugin {
     private static TeamAPI teamApi;
     private static JSONApi jsonApi;
     private static ScoreboardAPI scoreboardApi;
+    private static NBTTagApi nbttagApi;
 
     public void onEnable() {
         main = this;
@@ -31,6 +29,7 @@ public class SpigotApi extends JavaPlugin {
         teamApi = new TeamAPI();
         jsonApi = new JSONApi(getDataFolder());
         scoreboardApi = new ScoreboardAPI();
+        nbttagApi = new NBTTagApi();
 
         Bukkit.getServer().getPluginManager().registerEvents(teamApi, this);
     }
@@ -55,6 +54,10 @@ public class SpigotApi extends JavaPlugin {
 
     public static ScoreboardAPI getScoreboardApi(){
         return scoreboardApi;
+    }
+
+    public static NBTTagApi getNBTTagApi(){
+        return nbttagApi;
     }
 
 }
