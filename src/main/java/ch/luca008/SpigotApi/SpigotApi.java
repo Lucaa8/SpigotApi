@@ -6,10 +6,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
 
-//Ajouter NBTTagsApi dans SpigotApi
-//Convertir le plugin Nametags avec SpigotApi et LuckPerms 1.20
-//Refaire plugin Scoreboard pour choisir et changer son scoreboard grâce à l'inventaire
-
 public class SpigotApi extends JavaPlugin {
 
     private static SpigotApi main;
