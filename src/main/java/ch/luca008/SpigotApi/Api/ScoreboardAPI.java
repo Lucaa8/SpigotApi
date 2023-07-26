@@ -174,6 +174,8 @@ public class ScoreboardAPI {
 
         public void setPlaceholder(String placeholder, String value) {
             Scoreboard pboard = getParentBoard();
+            //Allow developpers to use "online" to target "{ONLINE}" i.e
+            placeholder = (placeholder.startsWith("{") ? "" : "{") + placeholder.toUpperCase() + (placeholder.endsWith("}") ? "" : "}");
             if(pboard == null || !this.placeholders.containsKey(placeholder))
                 return;
             String old = this.placeholders.put(placeholder, value);
