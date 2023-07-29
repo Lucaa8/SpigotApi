@@ -85,15 +85,22 @@ public class ScoreboardAPI {
     @Nullable
     public PlayerScoreboard setScoreboard(@Nonnull Player player, @Nullable String scoreboardName) {
         PlayerScoreboard pboard = getScoreboard(player);
+
         if(pboard == null && scoreboardName != null) {
             PlayerScoreboard newPlayerBoard = new PlayerScoreboard(player, scoreboardName);
             players.add(newPlayerBoard);
             return newPlayerBoard;
         }
-        if(scoreboardName != null) {
+
+        if(pboard != null) {
             pboard.setParentBoard(scoreboardName);
-            return pboard;
+            if(scoreboardName != null){
+                return pboard;
+            } else {
+                players.remove(pboard);
+            }
         }
+
         return null;
     }
 
@@ -163,6 +170,10 @@ public class ScoreboardAPI {
         @Nullable
         public String getCurrentTitle(){
             return playerTitle;
+        }
+
+        public Player getPlayer() {
+            return player;
         }
 
         public void setCurrentTitle(String title){
