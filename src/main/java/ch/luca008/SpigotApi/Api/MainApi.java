@@ -2,19 +2,30 @@ package ch.luca008.SpigotApi.Api;
 
 import ch.luca008.SpigotApi.Packets.TeamsPackets;
 import ch.luca008.SpigotApi.Packets.TeamsPackets.Mode;
+import ch.luca008.SpigotApi.SpigotApi;
 import ch.luca008.SpigotApi.Utils.WebRequest;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelDuplexHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.EventLoop;
 import net.minecraft.EnumChatFormat;
 import net.minecraft.network.NetworkManager;
 import net.minecraft.network.chat.IChatBaseComponent;
 import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.PacketPlayInUseEntity;
 import net.minecraft.server.level.EntityPlayer;
+import net.minecraft.server.network.PlayerConnection;
 import net.minecraft.world.scores.ScoreboardTeamBase.EnumNameTagVisibility;
 import net.minecraft.world.scores.ScoreboardTeamBase.EnumTeamPush;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.HandlerList;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -184,10 +195,13 @@ public class MainApi {
 
     public static class SpigotPlayer{
 
-        public Object getConnection(Player player) {
-            Class<?> craftplayer = ReflectionApi.getOBCClass("entity", "CraftPlayer");
-            EntityPlayer ep = (EntityPlayer) ReflectionApi.invoke(craftplayer, player, "getHandle", new Class[0], new Object[0]);
-            return ep.c;
+        public EntityPlayer getEntityPlayer(Player player){
+            Class<?> craftPlayer = ReflectionApi.getOBCClass("entity", "CraftPlayer");
+            return (EntityPlayer) ReflectionApi.invoke(craftPlayer, player, "getHandle", new Class[0], new Object[0]);
+        }
+
+        public PlayerConnection getConnection(Player player) {
+            return getEntityPlayer(player).c;
         }
 
         public void sendPacket(Collection<? extends Player> collection, Packet<?> packet) {
@@ -207,6 +221,72 @@ public class MainApi {
             for (Packet<?> packet : packets) {
                 sendPacket(player, packet);
             }
+        }
+
+        public PlayerSniffer handlePacket(Player player, PacketReceived callback){
+            return new PlayerSniffer(player, callback);
+        }
+
+    }
+
+    public interface PacketReceived {
+
+        void receive(Packet<?> packet);
+
+    }
+
+    private static class PlayerSniffer implements Listener {
+
+        private final Player player;
+        private final PacketReceived callback;
+
+        private PlayerSniffer(Player player, PacketReceived callback){
+            this.player = player;
+            this.callback = callback;
+            register();
+        }
+
+        private NetworkManager getNetwork(){
+            PlayerConnection conn = SpigotApi.getMainApi().players().getConnection(this.player);
+            return (NetworkManager) ReflectionApi.getField(conn, "h");
+        }
+
+        private void register(){
+
+            Bukkit.getServer().getPluginManager().registerEvents(this, SpigotApi.getInstance());
+
+            getNetwork().m.pipeline().addBefore("packet_handler", this.player.getName(), new ChannelDuplexHandler(){
+                public void channelRead(ChannelHandlerContext channelHandlerContext, Object packet) throws Exception {
+                    if(packet instanceof Packet<?> p)
+                    {
+                        PlayerSniffer.this.callback.receive(p);
+                    }
+                    super.channelRead(channelHandlerContext, packet);
+                }
+            });
+
+        }
+
+        private void unregister(){
+
+            HandlerList.unregisterAll(this);
+
+            final Channel channel = getNetwork().m;
+            EventLoop loop = channel.eventLoop();
+            loop.submit(() -> {
+                channel.pipeline().remove(this.player.getName());
+                return null;
+            });
+
+        }
+
+        @EventHandler
+        public void onQuitUnregister(PlayerQuitEvent e){
+
+            if(e.getPlayer() == player){
+                unregister();
+            }
+
         }
 
     }
