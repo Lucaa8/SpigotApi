@@ -16,6 +16,7 @@ import net.minecraft.world.scores.ScoreboardTeamBase.EnumNameTagVisibility;
 import net.minecraft.world.scores.ScoreboardTeamBase.EnumTeamPush;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
@@ -189,7 +190,7 @@ public class MainApi {
 
     public interface PacketReceived {
 
-        void receive(Packet<?> packet);
+        void receive(Packet<?> packet, Cancellable cancellable);
 
     }
 
@@ -215,11 +216,27 @@ public class MainApi {
 
             getNetwork().m.pipeline().addBefore("packet_handler", this.player.getName(), new ChannelDuplexHandler(){
                 public void channelRead(ChannelHandlerContext channelHandlerContext, Object packet) throws Exception {
+                    Cancellable c = new Cancellable() {
+                        private boolean cancelled = false;
+                        @Override
+                        public boolean isCancelled() {
+                            return cancelled;
+                        }
+
+                        @Override
+                        public void setCancelled(boolean cancel) {
+                            this.cancelled = cancel;
+                        }
+                    };
+
                     if(packet instanceof Packet<?> p)
                     {
-                        PlayerSniffer.this.callback.receive(p);
+                        PlayerSniffer.this.callback.receive(p, c);
                     }
-                    super.channelRead(channelHandlerContext, packet);
+
+                    if(!c.isCancelled()){
+                        super.channelRead(channelHandlerContext, packet);
+                    }
                 }
             });
 
