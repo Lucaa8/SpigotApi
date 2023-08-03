@@ -27,6 +27,16 @@ public class ReflectionApi {
         }
     }
 
+    @Nullable
+    public static Class<?> getPrivateInnerClass(Class<?> outerClass, String innerClassName){
+        for(Class<?> c : outerClass.getDeclaredClasses()){
+            if(c.getName().equals(innerClassName)){
+                return c;
+            }
+        }
+        return null;
+    }
+
     public static Object invoke(Class<?> methodClass, Object objectToInvoke, String methodName, Class<?>[] methodArgsType, Object...methodArgs) {
         Object value = null;
         try {
