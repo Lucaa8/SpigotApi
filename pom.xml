@@ -53,7 +53,7 @@
                 <configuration>
                     <shadedArtifactAttached>true</shadedArtifactAttached>
                     <shadedClassifierName>shaded</shadedClassifierName>
-                    <outputDirectory>${user.home}\Desktop\</outputDirectory>
+                    <outputDirectory>D:\Dev\SkyblockV4\Servers\Paper1201\plugins\</outputDirectory>
                 </configuration>
             </plugin>
         </plugins>

@@ -18,6 +18,7 @@ public class SpigotApi extends JavaPlugin {
     private static JSONApi jsonApi;
     private static ScoreboardAPI scoreboardApi;
     private static NBTTagApi nbttagApi;
+    private static NPCApi npcApi;
 
     public void onEnable() {
         main = this;
@@ -26,8 +27,10 @@ public class SpigotApi extends JavaPlugin {
         jsonApi = new JSONApi(getDataFolder());
         scoreboardApi = new ScoreboardAPI();
         nbttagApi = new NBTTagApi();
+        npcApi = new NPCApi();
 
         Bukkit.getServer().getPluginManager().registerEvents(teamApi, this);
+
     }
 
     public void onDisable(){
@@ -56,4 +59,5 @@ public class SpigotApi extends JavaPlugin {
         return nbttagApi;
     }
 
+    public static NPCApi getNpcApi(){return npcApi;}
 }

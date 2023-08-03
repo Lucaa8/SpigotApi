@@ -350,6 +350,19 @@ public class TeamAPI implements Listener {
             Packet<?> deletePacket = api.packets().teams().getDeleteTeamPacket(getReelUniqueName());
             api.players().sendPacket(pls, deletePacket);
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof Team team)) return false;
+            return uniqueName.equals(team.uniqueName);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(uniqueName);
+        }
+
     }
 
     public static class TeamBuilder{

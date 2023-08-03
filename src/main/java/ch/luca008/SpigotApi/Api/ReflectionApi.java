@@ -10,7 +10,7 @@ import java.lang.reflect.Method;
 
 public class ReflectionApi {
 
-    private static String version = Bukkit.getServer().getClass().getPackage().getName().replace(".", ",").split(",")[3];
+    private static final String version = Bukkit.getServer().getClass().getPackage().getName().replace(".", ",").split(",")[3];
 
     public static String getServerVersion(){
         return version;
@@ -60,8 +60,12 @@ public class ReflectionApi {
     }
 
     public static void setField(Object o, String fieldname, Object value) {
+        setField(o.getClass(), o, fieldname, value);
+    }
+
+    public static void setField(Class<?> clazz, Object o, String fieldname, Object value) {
         try {
-            Field f = o.getClass().getDeclaredField(fieldname);
+            Field f = clazz.getDeclaredField(fieldname);
             f.setAccessible(true);
             f.set(o, value);
             f.setAccessible(false);
@@ -70,7 +74,7 @@ public class ReflectionApi {
         }
     }
 
-    private static Object _getField(Class<?> clazz, Object object, String field){
+    public static Object getField(Class<?> clazz, Object object, String field){
         Object value = null;
         try {
             Field f = clazz.getDeclaredField(field);
@@ -84,11 +88,11 @@ public class ReflectionApi {
     }
 
     public static Object getField(Object o, String fieldname) {
-        return _getField(o.getClass(), o, fieldname);
+        return getField(o.getClass(), o, fieldname);
     }
 
     public static Object getStaticField(Class<?> clazz, String fieldname){
-        return _getField(clazz, null, fieldname);
+        return getField(clazz, null, fieldname);
     }
 
     public static Object getEnumValue(Class<?> enumClazz, String enumValue){
