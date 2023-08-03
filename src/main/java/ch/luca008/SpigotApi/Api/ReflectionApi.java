@@ -30,7 +30,7 @@ public class ReflectionApi {
     @Nullable
     public static Class<?> getPrivateInnerClass(Class<?> outerClass, String innerClassName){
         for(Class<?> c : outerClass.getDeclaredClasses()){
-            if(c.getName().equals(innerClassName)){
+            if(c.getSimpleName().equals(innerClassName)){
                 return c;
             }
         }
