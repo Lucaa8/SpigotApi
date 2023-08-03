@@ -3,33 +3,25 @@ package ch.luca008.SpigotApi.Api;
 import ch.luca008.SpigotApi.Packets.TeamsPackets;
 import ch.luca008.SpigotApi.Packets.TeamsPackets.Mode;
 import ch.luca008.SpigotApi.SpigotApi;
-import ch.luca008.SpigotApi.Utils.WebRequest;
-import com.mojang.authlib.GameProfile;
-import com.mojang.authlib.properties.Property;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.EventLoop;
 import net.minecraft.EnumChatFormat;
 import net.minecraft.network.NetworkManager;
-import net.minecraft.network.chat.IChatBaseComponent;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.PacketPlayInUseEntity;
 import net.minecraft.server.level.EntityPlayer;
 import net.minecraft.server.network.PlayerConnection;
 import net.minecraft.world.scores.ScoreboardTeamBase.EnumNameTagVisibility;
 import net.minecraft.world.scores.ScoreboardTeamBase.EnumTeamPush;
 import org.bukkit.Bukkit;
-import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
-import java.util.UUID;
 
 public class MainApi {
     private final SpigotPlayer players;
@@ -56,40 +48,6 @@ public class MainApi {
         public SpigotPackets(){
             this.sb = new ScoreboardPackets();
             this.teams = new TeamPackets();
-        }
-
-        /**
-         * Return null if no bukkit worlds are loaded
-         * @param uuid a known uuid or null for random
-         * @param nameLen16 a pseudo for this entityplayer (max length = 16). If actual name is longer than 16, the method will cut the end.
-         * @param listName the text the players will see (can be > 16). If null or empty, the {@param nameLen16} will be displayed
-         * @param skinPseudoOrUuid the playerhead's pseudo or uuid just at the left of the pseudo (only on premium servers). If null the alex or steve will be displayed
-         * @param ping the ping at the right of the pseudo. if not set: 5bars. ping bars icon: 0<ms5<150ms<4<300ms<3<600ms<2<1000ms<1<1000ms+. negative ping will display the no connection icon
-         * @return An EntityPlayer class. Which contains uuid, name and playerConnection, etc...
-         */
-        @Nullable
-        public EntityPlayer getFakeEntityPlayer(@Nullable UUID uuid, String nameLen16, @Nullable String listName, @Nullable String skinPseudoOrUuid, int...ping){
-            World world = Bukkit.getWorlds().get(0);
-            if(world!=null){
-                GameProfile profile = new GameProfile(uuid==null?UUID.randomUUID():uuid, nameLen16.length() > 16 ? nameLen16.substring(0, 16) : nameLen16);
-                Object MinecraftServer = ReflectionApi.invoke(ReflectionApi.getOBCClass(null,"CraftServer"), Bukkit.getServer(), "getServer", new Class<?>[0]);
-                Object WorldServer = ReflectionApi.invoke(ReflectionApi.getOBCClass(null,"CraftWorld"), world, "getHandle",new Class<?>[0]);
-                EntityPlayer EntityPlayer = new EntityPlayer((net.minecraft.server.MinecraftServer) MinecraftServer, (net.minecraft.server.level.WorldServer) WorldServer, profile);
-                if(listName!=null&&listName.length()>0){
-                    EntityPlayer.listName = IChatBaseComponent.a(listName);
-                }
-                if(skinPseudoOrUuid!=null&&skinPseudoOrUuid.length()>0){
-                    Property p = WebRequest.getSkin(skinPseudoOrUuid);
-                    if(p!=null){
-                        profile.getProperties().put("textures", p);
-                    }
-                }
-                if(ping!=null&&ping.length>0){
-                    EntityPlayer.f = ping[0];
-                }
-                return EntityPlayer;
-            }
-            return null;
         }
 
         public TeamPackets teams(){
