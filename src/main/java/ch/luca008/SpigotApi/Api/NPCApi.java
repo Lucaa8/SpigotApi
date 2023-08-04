@@ -107,10 +107,12 @@ public class NPCApi {
 
         public void spawn(Player player){
             api.sendPackets(player, createPackets());
+            Bukkit.getScheduler().runTaskLater(SpigotApi.getInstance(), ()-> api.sendPacket(player, EntityPackets.removeEntity(this.entity)),10L);
         }
 
         public void spawn(){
             api.sendPackets(Bukkit.getOnlinePlayers(), createPackets());
+            Bukkit.getScheduler().runTaskLater(SpigotApi.getInstance(), ()-> api.sendPacket(Bukkit.getOnlinePlayers(), EntityPackets.removeEntity(this.entity)),10L);
         }
 
         public void despawn(Player player){
