@@ -27,12 +27,20 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 
+/*
+//!\\
+Meta/Skull contains NMS
+This/giveOrDopWithoutNBT contains NMS
+//!\\
+ */
+
 public class Item {
 
-    private String uid;
+    private final String uid;
     private Material material;
     private String name;
     private List<String> lore;
@@ -113,20 +121,49 @@ public class Item {
         return null;
     }
 
-    public void glow(){
-        if(flags==null)flags = new ArrayList<>();
-        flags.add(ItemFlag.HIDE_ENCHANTS);
-        if(enchantList==null)enchantList=new ArrayList<>();
-        enchantList.add(new Enchant(Enchantment.LUCK,1));
+    public JSONObject toJson(){
+        JSONObject j = new JSONObject();
+        if(uid!=null&&!uid.isEmpty())j.put("Id",uid);
+        j.put("Material",material.name());
+        if(name!=null&&!name.isEmpty())j.put("Name",name);
+        if(repairCost>0)j.put("RepairCost", repairCost);
+        if(customData>0)j.put("CustomData", customData);
+        if(lore!=null&&!lore.isEmpty()){
+            j.put("Lore",lore);
+        }
+        if(enchantList!=null&&!enchantList.isEmpty()){
+            j.put("Enchants",Enchant.listToJson(enchantList));
+        }
+        if(attributes!=null&&!attributes.isEmpty()){
+            j.put("Attributes",ItemAttribute.listToJson(attributes));
+        }
+        if(flags!=null&&!flags.isEmpty()){
+            JSONArray jarr = new JSONArray();
+            for(ItemFlag f : flags){
+                jarr.add(f.name());
+            }
+            j.put("Flags",jarr);
+        }
+        if(meta!=null){
+            j.put("ItemMeta",new MetaLoader().unload(meta));
+        }
+        if(damage>0){
+            j.put("Durability",damage);
+        }
+        if(invulnerable)j.put("Invulnerable",true);
+        return j;
     }
 
-    public void hideAttributes(){
-        if(flags==null)flags=new ArrayList<>();
-        flags.add(ItemFlag.HIDE_ATTRIBUTES);
-    }
-
-    private ItemStack _toItemStack(int amount, @Nullable OfflinePlayer player){
+    /**
+     * Create an ItemStack from this Item. It includes UID, Damage and RepairCost as NBTTags, Display Name, Lore, etc... as ItemMeta and all extras Meta like Skull, Book, etc..
+     * Similar to {@link #toItemStacks(int, OfflinePlayer)} but amount cannot exceed 64
+     * @param player If this Item contains Meta like {@link Skull} or {@link Book} then we can apply the custom Meta for the given player. If null then the Meta wont be applied.
+     * @param amount An amount between 1 and 64 inclusive
+     * @return This Item as an Minecraft ItemStack with an amount between 1 and 64.
+     */
+    public ItemStack toItemStack(int amount, @Nullable OfflinePlayer player){
         if(amount>64)amount=64;
+        if(amount<1)amount=1;
         ItemStack item = new ItemStack(material, amount);
         if(hasItemMeta()) item.setItemMeta(getItemMeta());
         if(meta!=null){
@@ -150,15 +187,6 @@ public class Item {
     }
 
     /**
-     * Similar to {@link #toItemStacks(int, OfflinePlayer)} but amount cannot exceed 64
-     * @param amount An amount between 0 and 64 inclusive
-     * @return A stack with specified amount or rounded to 64 if more
-     */
-    public ItemStack toItemStack(int amount, @Nullable OfflinePlayer player){
-        return _toItemStack(amount, player);
-    }
-
-    /**
      * See {@link #toItemStack(int, OfflinePlayer)}
      */
     public ItemStack toItemStack(int amount){
@@ -167,14 +195,13 @@ public class Item {
 
     /**
      * Similar to {@link #toItemStack(int, OfflinePlayer)}} but amount can exceed 64
-     * @param amount any amount >= 0 (can exceed 64)
-     * @param player A potential player if skull or book meta are required (Nullable)
+     * @param amount any amount > 0 (can exceed 64)
      * @return An array of stacks. If amount <= 64 the array will contain the only stack at index 0
      */
     public ItemStack[] toItemStacks(int amount, @Nullable OfflinePlayer player){
-        if(amount<=64)return new ItemStack[]{_toItemStack(amount,player)};
+        if(amount<=64)return new ItemStack[]{toItemStack(amount,player)};
         List<ItemStack> items = new ArrayList<>();
-        ItemStack brut = _toItemStack(64, player);
+        ItemStack brut = toItemStack(64, player);
         while(amount>0){
             if(amount>64){
                 items.add(brut.clone());
@@ -294,30 +321,67 @@ public class Item {
         return true;
     }
 
-    public void giveOrDrop(Player p, int amount){
+    private void _giveOrDrop(Player p, ItemStack[] items){
         PlayerInventory inv = p.getInventory();
-        ItemStack current = toItemStack(amount);
-        if(meta instanceof Skull){
-            if(((Skull)meta).getOwningType()==Skull.SkullOwnerType.PLAYER)current = ((Skull)meta).applyOwner(current, p.getUniqueId());
-        }
-        if(meta instanceof Book){
-            current = ((Book)meta).applyForPlayer(current, p.getName());
-        }
-        Map<Integer, ItemStack> full = inv.addItem(current);
-        if (!full.isEmpty()) {
-            Location loc = p.getLocation();
-            for(Map.Entry<Integer, ItemStack> extra : full.entrySet()) {
-                p.getWorld().dropItem(loc, extra.getValue());
+        for(ItemStack item : items){
+            Map<Integer, ItemStack> full = inv.addItem(item);
+            if (!full.isEmpty()) {
+                Location loc = p.getLocation();
+                for(Map.Entry<Integer, ItemStack> extra : full.entrySet()) {
+                    p.getWorld().dropItem(loc, extra.getValue());
+                }
             }
         }
+    }
+
+    /**
+     * This method will convert this Item to his ItemStack value and will try to give all stacks to the given player.
+     * If this player's inventory is full then the method will drop this remaining items on the player's current location
+     * @param p The player
+     * @param amount The amount of this item to give. It can exceed 64 to takes multiple inventory slots. (If the player has 3 more free slots and you want to give 256 of this item then 3 stacks will go inside his inventory and one stack will drop on the player's location
+     */
+    public void giveOrDrop(Player p, int amount){
+        ItemStack[] items = toItemStacks(amount, p);
+        _giveOrDrop(p, items);
+    }
+
+    /**
+     * Same as {@link #giveOrDrop(Player, int)} but it will remove all NBTS on the ItemStacks.
+     * It should be used only on ItemStacks which are blocks like Stone, Wool, etc.. Because if you use it on a sword with durability, enchants, etc.. They will be removed.
+     * I.e of use: If you give 32 cobblestone to the player with a nbt, then a place one bloc and mines it, he wont stack with 31 others blocks because the block lost his nbt
+     * @param p The player
+     * @param amount See {@link #giveOrDrop(Player, int)}
+     */
+    public void giveOrDopWithoutNBT(Player p, int amount){
+        ItemStack[] items = toItemStacks(amount, p);
+        ItemStack[] withoutNbtItems = new ItemStack[items.length];
+        int i = 0;
+        NBTTagApi api = SpigotApi.getNBTTagApi();
+        for(ItemStack item : toItemStacks(amount, p)){
+            NBTTagApi.NBTItem nbt = api.getNBT(item);
+            for(String tag : api.getNBT(item).getTags().e()){
+                nbt.removeTag(tag);
+            }
+            withoutNbtItems[i++] = nbt.getBukkitItem();
+        }
+        _giveOrDrop(p, withoutNbtItems);
+    }
+
+    public void glow(){
+        addFlag(ItemFlag.HIDE_ENCHANTS);
+        addEnchant(Enchantment.LUCK, 1);
+    }
+
+    public String getUid() {
+        return uid;
     }
 
     public Material getMaterial(){
         return material;
     }
 
-    public int getCustomData(){
-        return customData;
+    public void setMaterial(Material material) {
+        this.material = material;
     }
 
     public String getName(){
@@ -325,48 +389,162 @@ public class Item {
         return ch.luca008.SpigotApi.Utils.StringUtils.enumName(getMaterial());
     }
 
-    public Meta getMeta(){
-        return meta;
+    public void setName(String name) {
+        this.name = name;
     }
-    public boolean hasMeta(){
-        return getMeta()!=null;
+
+    public List<String> getLore() {
+        return lore;
     }
 
     public void setLore(String lore){
         this.lore = ch.luca008.SpigotApi.Utils.StringUtils.asLore(lore);
     }
 
-    public JSONObject toJson(){
-        JSONObject j = new JSONObject();
-        if(uid!=null&&!uid.isEmpty())j.put("Id",uid);
-        j.put("Material",material.name());
-        if(name!=null&&!name.isEmpty())j.put("Name",name);
-        if(repairCost>0)j.put("RepairCost", repairCost);
-        if(customData>0)j.put("CustomData", customData);
-        if(lore!=null&&!lore.isEmpty()){
-            j.put("Lore",lore);
-        }
-        if(enchantList!=null&&!enchantList.isEmpty()){
-            j.put("Enchants",Enchant.listToJson(enchantList));
-        }
-        if(attributes!=null&&!attributes.isEmpty()){
-            j.put("Attributes",ItemAttribute.listToJson(attributes));
-        }
-        if(flags!=null&&!flags.isEmpty()){
-            JSONArray jarr = new JSONArray();
-            for(ItemFlag f : flags){
-                jarr.add(f.name());
+    public void setLore(List<String> lore) {
+        this.lore = lore;
+    }
+
+    public List<Enchant> getEnchantList() {
+        return enchantList;
+    }
+
+    public void setEnchantList(List<Enchant> enchantList) {
+        this.enchantList = enchantList;
+    }
+
+    public void addEnchant(Enchant enchant){
+        if(this.enchantList == null){
+            this.enchantList = new ArrayList<>();
+        } else {
+            if(this.enchantList.contains(enchant)){
+                System.err.println("Cannot add Enchant " + enchant + " to this item because he already has it.");
+                return;
             }
-            j.put("Flags",jarr);
         }
-        if(meta!=null){
-            j.put("ItemMeta",new MetaLoader().unload(meta));
+        this.enchantList.add(enchant);
+    }
+
+    public void addEnchant(Enchantment enchant, int level){
+        addEnchant(new Enchant(enchant, level));
+    }
+
+    public void removeEnchant(Enchant enchant){
+        if(this.enchantList != null){
+            this.enchantList.remove(enchant);
         }
-        if(damage>0){
-            j.put("Durability",damage);
+    }
+
+    public void removeEnchant(Enchantment enchant){
+        if(this.enchantList != null){
+            this.enchantList.removeIf(e -> e.getEnchantment().equals(enchant));
         }
-        if(invulnerable)j.put("Invulnerable",true);
-        return j;
+    }
+
+    public List<ItemFlag> getFlags() {
+        return flags;
+    }
+
+    public void setFlags(List<ItemFlag> flags) {
+        this.flags = flags;
+    }
+
+    public void addFlag(ItemFlag flag){
+        if(this.flags == null){
+            this.flags = new ArrayList<>();
+        } else {
+            if(this.flags.contains(flag)){
+                System.err.println("Cannot add ItemFlag " + flag + " to this item because he already has it.");
+                return;
+            }
+        }
+        this.flags.add(flag);
+    }
+
+    public void removeFlag(ItemFlag flag){
+        if(this.flags != null){
+            this.flags.remove(flag);
+        }
+    }
+
+    public List<ItemAttribute> getAttributes() {
+        return attributes;
+    }
+
+    public void setAttributes(List<ItemAttribute> attributes) {
+        this.attributes = attributes;
+    }
+
+    public void addAttribute(ItemAttribute attribute){
+        if(this.attributes == null){
+            this.attributes = new ArrayList<>();
+        } else {
+            if(this.attributes.contains(attribute)){
+                System.err.println("Cannot add Attribute " + attribute + " to this item because he already has it.");
+                return;
+            }
+        }
+        this.attributes.add(attribute);
+    }
+
+    public void addAttribute(@Nonnull Attribute attribute, @Nonnull AttributeModifier modifier){
+        addAttribute(new ItemAttribute(attribute, modifier.getName(), modifier.getAmount(), modifier.getOperation(), modifier.getSlot()));
+    }
+
+    public void removeAttribute(ItemAttribute attribute){
+        if(this.attributes != null){
+            this.attributes.remove(attribute);
+        }
+    }
+
+    public void removeAttribute(Attribute attribute){
+        if(this.attributes != null){
+            this.attributes.removeIf(e -> e.getAttribute().equals(attribute));
+        }
+    }
+
+    public int getRepairCost() {
+        return repairCost;
+    }
+
+    public void setRepairCost(int repairCost) {
+        this.repairCost = repairCost;
+    }
+
+    public int getCustomData(){
+        return customData;
+    }
+
+    public void setCustomData(int customData) {
+        this.customData = customData;
+    }
+
+    public Meta getMeta(){
+        return meta;
+    }
+
+    public void setMeta(Meta meta) {
+        this.meta = meta;
+    }
+
+    public boolean hasMeta(){
+        return getMeta()!=null;
+    }
+
+    public int getDamage() {
+        return damage;
+    }
+
+    public void setDamage(int damage) {
+        this.damage = damage;
+    }
+
+    public boolean isInvulnerable() {
+        return invulnerable;
+    }
+
+    public void setInvulnerable(boolean invulnerable) {
+        this.invulnerable = invulnerable;
     }
 
     @Override

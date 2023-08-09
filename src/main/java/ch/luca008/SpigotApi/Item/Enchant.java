@@ -11,6 +11,7 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import java.util.List;
+import java.util.Objects;
 
 public class Enchant {
 
@@ -81,4 +82,15 @@ public class Enchant {
         return "Enchantment{Key:"+enchantment.getKey().getKey()+",Level:"+level+"}";
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Enchant enchant)) return false;
+        return level == enchant.level && enchantment.equals(enchant.enchantment);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(enchantment, level);
+    }
 }

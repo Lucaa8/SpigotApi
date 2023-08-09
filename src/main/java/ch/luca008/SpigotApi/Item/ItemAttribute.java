@@ -11,6 +11,7 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 public class ItemAttribute {
@@ -104,4 +105,17 @@ public class ItemAttribute {
         return "{Attribute:"+attribute.name()+",Name:"+modifier.getName()+",Value:"+modifier.getAmount()+",Operation:"+ modifier.getOperation().name()+",Slot:"+
                 (modifier.getSlot()==null?"Empty": modifier.getSlot().name())+"}";
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ItemAttribute that)) return false;
+        return attribute == that.attribute && modifier.equals(that.modifier);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(attribute, modifier);
+    }
+
 }
