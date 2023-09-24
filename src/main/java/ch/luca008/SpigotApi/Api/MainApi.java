@@ -194,7 +194,7 @@ public class MainApi {
 
     }
 
-    private static class PlayerSniffer implements Listener {
+    public static class PlayerSniffer implements Listener {
 
         private final Player player;
         private final PacketReceived callback;
@@ -242,7 +242,7 @@ public class MainApi {
 
         }
 
-        private void unregister(){
+        public void unregister(){
 
             HandlerList.unregisterAll(this);
 
