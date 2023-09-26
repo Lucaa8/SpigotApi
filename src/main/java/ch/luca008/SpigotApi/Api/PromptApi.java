@@ -36,10 +36,15 @@ public class PromptApi implements Listener {
      * @param player The player you want to open the sign
      * @param callback The code you want to be executed when the player hits Done or closes the sign. The cancel argument is set to true when the first line on the sign is equals (ignore case) to the {@link #cancelCmd} attribute.
      * @param initialLines An array (size 4 max) with the lines you want to show to the player when the sign opens. You can set a blank line with an empty string. If the size is less than 4 then the array will be filled with blank lines.
+     * @return Returns true if the player has been prompted with your lines and your callback. If the player is already in an old prompt then returns false.
      */
-    public void promptPlayer(Player player, PromptCallback callback, String...initialLines) {
+    public boolean promptPlayer(Player player, PromptCallback callback, String...initialLines) {
 
         final UUID id = player.getUniqueId();
+
+        if(prompt.containsKey(id)){
+            return false;
+        }
 
         MainApi.PlayerSniffer sniffer = SpigotApi.getMainApi().players().handlePacket(player, ((packet, cancellable) -> {
             if(packet instanceof PacketPlayInUpdateSign sign){
@@ -70,6 +75,8 @@ public class PromptApi implements Listener {
         prompt.put(id, sniffer);
 
         prompt(player, initialLines);
+
+        return true;
 
     }
 
