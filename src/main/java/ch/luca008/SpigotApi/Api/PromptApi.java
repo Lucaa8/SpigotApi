@@ -62,7 +62,8 @@ public class PromptApi implements Listener {
                 final String line = temp;
 
                 //We notify the caller that the player did finish to edit the sign
-                callback.getInput(sign.d()[0].equalsIgnoreCase(cancelCmd), sign.d(), line);
+                //Because the packets are received asynchronously we need to resync with bukkit to avoir async errors inside the callback.
+                Bukkit.getScheduler().runTask(SpigotApi.getInstance(), ()->callback.getInput(sign.d()[0].equalsIgnoreCase(cancelCmd), sign.d(), line));
 
                 //We remove the player from the currently prompted players list as we have finished
                 if(prompt.containsKey(id)){
