@@ -28,7 +28,8 @@ if(isRegistered){
     System.out.println("New team registered!");
 } else {
     System.err.println("The api failed to register your team");
-}```
+}
+```
 
 ## Spigot obfuscation 1.20
 ### EnumChatFormat
