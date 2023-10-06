@@ -17,7 +17,7 @@ This API registers your teams on the server side and send them when a player con
 - Toggle friendly fire and see invisible friends properties
 
 Here are some examples of uses;
-```java
+```
 boolean isRegistered = SpigotApi.getTeamApi().registerTeam(new TeamAPI.TeamBuilder("admin_team")
                 .setPrefix("§cAdmin | ")
                 .setColor(EnumChatFormat.a)
