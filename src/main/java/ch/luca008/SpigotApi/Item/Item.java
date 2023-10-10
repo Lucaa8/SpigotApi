@@ -384,9 +384,12 @@ public class Item {
         this.material = material;
     }
 
+    /**
+     * If {@link this#name} is null then the ItemStack will have the Minecraft default name for this material.
+     */
+    @Nullable
     public String getName(){
-        if(name!=null&&!name.isEmpty())return name;
-        return ch.luca008.SpigotApi.Utils.StringUtils.enumName(getMaterial());
+        return name;
     }
 
     public void setName(String name) {
