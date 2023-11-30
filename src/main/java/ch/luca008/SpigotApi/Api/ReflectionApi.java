@@ -107,7 +107,8 @@ public class ReflectionApi {
 
     public static Object getEnumValue(Class<?> enumClazz, String enumValue){
         try {
-            Method valueOf = enumClazz.getMethod("valueOf", String.class);
+            Method valueOf = enumClazz.getDeclaredMethod("valueOf", String.class);
+            valueOf.setAccessible(true);
             return valueOf.invoke(enumClazz, enumValue);
         } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
             System.out.println("The enum value \""+enumValue+"\" of enum \""+enumClazz.getName()+"\" can't be found...\n");
