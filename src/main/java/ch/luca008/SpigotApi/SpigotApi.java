@@ -23,6 +23,9 @@ public class SpigotApi extends JavaPlugin {
 
     public void onEnable() {
         main = this;
+
+        new ReflectionApi(); //execute the static block code
+
         mainApi = new MainApi();
         teamApi = new TeamAPI();
         jsonApi = new JSONApi(getDataFolder());
