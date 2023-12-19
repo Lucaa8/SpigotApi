@@ -1,12 +1,17 @@
 package ch.luca008.SpigotApi;
 
 import ch.luca008.SpigotApi.Api.*;
+import ch.luca008.SpigotApi.Packets.EntityPackets;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public class SpigotApi extends JavaPlugin {
+public class SpigotApi extends JavaPlugin implements Listener {
 
     private static SpigotApi main;
     public static SpigotApi getInstance(){
@@ -37,10 +42,18 @@ public class SpigotApi extends JavaPlugin {
         Bukkit.getServer().getPluginManager().registerEvents(teamApi, this);
         Bukkit.getServer().getPluginManager().registerEvents(promptApi, this);
 
+        Bukkit.getServer().getPluginManager().registerEvents(this, this);
+
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent e)
+    {
+        EntityPackets.attemptSpawnEntity(e.getPlayer());
     }
 
     public void onDisable(){
-        HandlerList.unregisterAll(this);
+        HandlerList.unregisterAll((Plugin) this);
         teamApi.getTeams().forEach(t->t.sendDeletePacket(Bukkit.getOnlinePlayers().toArray(new Player[0])));
         scoreboardApi.unregisterAll();
     }

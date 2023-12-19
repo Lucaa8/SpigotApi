@@ -1,7 +1,9 @@
 package ch.luca008.SpigotApi.Packets;
 
+import ch.luca008.SpigotApi.Api.NPCApi;
 import ch.luca008.SpigotApi.Api.ReflectionApi;
 import com.mojang.authlib.GameProfile;
+import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.*;
 import net.minecraft.network.syncher.DataWatcher;
 import net.minecraft.network.syncher.DataWatcherObject;
@@ -13,39 +15,71 @@ import org.bukkit.Location;
 import java.util.*;
 
 import ch.luca008.SpigotApi.Api.ReflectionApi.*;
+import org.bukkit.craftbukkit.v1_20_R1.entity.CraftPlayer;
+import org.bukkit.entity.Player;
 
 public class EntityPackets
 {
 
-    private static final String ADD_ENTITY = EntityPackets.class.getName() + "_AddEntityPacket"; //the base packet with enumset actions and list of Record entries
-    private static final String ADD_ENTITY_RECORD = ADD_ENTITY + "Record"; //The uuid, gamemode, listed, latency and displayname
-    private static final String SPAWN_ENTITY =  EntityPackets.class.getName() + "_SpawnEntityPacket";
+    private static final String ADD_ENTITY = "AddEntityInfoPacket"; //the base packet with enumset actions and list of Record entries
+    private static final String ADD_ENTITY_ENTRY = ADD_ENTITY + "Entry"; //The uuid, gamemode, listed, latency and displayname
+    private static final String ADD_ENTITY_ACTION = ADD_ENTITY + "Action"; //ADD_PLAYER, INITIALIZE_CHAT, UPDATE_GAME_MODE, UPDATE_LISTED, UPDATE_LATENCY, UPDATE_DISPLAY_NAME
+    private static final String SPAWN_ENTITY = "SpawnEntityPacket"; //PacketPlayOutNamedEntitySpawn for 1.20.1 then HeadRotation, or PacketPlayOutSpawnEntity for 1.20.2 and later
+    private static final String ENTITY_HEAD_ROT = "EntityHeadRotationPacket"; //For 1.20.1
+    private static final String REMOVE_ENTITY = "RemoveEntityInfoPacket";
+    private static final String DESTROY_ENTITY = "DestroyEntityPacket";
 
-    public static Map<String, ReflectionApi.ClassMapping> getMappings()
-    {
-        Map<String, ClassMapping> mappings = new HashMap<>();
+    private static final Map<String, ClassMapping> mappings = new HashMap<>();
+
+    static {
+
         Version serverVersion = ReflectionApi.SERVER_VERSION;
-        if(serverVersion == Version.MC_1_20)
-        {
-            //comment gérer le fait que le packet de spawn en 1.20 ne prend pas la rotation de la tete en paramètres? créer le packet EntityHeadRotation et lenvoyer que si v == 1.20.1?
-            Map<String, ApiField> PacketFields = new HashMap<>(){{ put("id", new ApiField("a")); put("uuid", new ReflectionApi.ApiField("b")); put("x", new ReflectionApi.ApiField("c")); put("y", new ReflectionApi.ApiField("d")); put("z", new ReflectionApi.ApiField("e")); put("yaw", new ReflectionApi.ApiField("f")); put("pitch", new ReflectionApi.ApiField("g")); }};
-            mappings.put(SPAWN_ENTITY, new ClassMapping(ReflectionApi.getNMSClass("network.protocol.game", "PacketPlayOutNamedEntitySpawn"), PacketFields,  new HashMap<>()));
+        String protocolPackage = "network.protocol.game";
+        if(serverVersion == Version.MC_1_20){
+            mappings.put(SPAWN_ENTITY, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "PacketPlayOutNamedEntitySpawn"), new HashMap<>(){{ put("id", "a"); put("uuid", "b"); put("x", "c"); put("y", "d"); put("z", "e"); put("yaw", "f"); put("pitch", "g"); }},  new HashMap<>()));
+            mappings.put(ENTITY_HEAD_ROT, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "PacketPlayOutEntityHeadRotation"), new HashMap<>() {{ put("id", "a"); put("head", "b"); }}, new HashMap<>()));
+        } else {
+            mappings.put(SPAWN_ENTITY, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "PacketPlayOutSpawnEntity"), new HashMap<>(){{ put("id", "c"); put("uuid", "d"); put("type", "e"); put("x", "f"); put("y", "g"); put("z", "h"); put("velX", "i"); put("velY", "j"); put("velZ", "k"); put("pitch", "l"); put("yaw", "m"); put("head", "n"); put("data", "o"); }}, new HashMap<>()));
         }
-        else if(serverVersion == Version.MC_1_20_2 || serverVersion == Version.MC_1_20_3)
-        {
-            //PacketPlayOutSpawnEntity packet8 =
-            // new PacketPlayOutSpawnEntity(id, gp.getId(), loc.getX(), loc.getY(), loc.getZ(), 0F, 0f, EntityTypes.bv, 0, new Vec3D(0,0,0), 0f);
-            Map<String, ApiField> PacketFields = new HashMap<>(){{
-                put("id", new ApiField("c"));
-                put("uuid", new ApiField("d"));
-                //EntityTypes : e
-                put("x", new ApiField("f"));
-                put("y", new ApiField("g"));
-                put("z", new ApiField("h"));
-            }};
-            mappings.put(SPAWN_ENTITY, new ClassMapping(ReflectionApi.getNMSClass("network.protocol.game", "PacketPlayOutSpawnEntity"), PacketFields, new HashMap<>()));
-        }
-        return mappings;
+
+        mappings.put(ADD_ENTITY, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "ClientboundPlayerInfoUpdatePacket"), new HashMap<>() {{ put("actions", "a"); put("entries", "b"); }}, new HashMap<>()));
+        //As Record are truly final fields, we cant instantiate the Entry class and later on edit the fields. So we use the c class, which is a static class builder for the b Record.
+        mappings.put(ADD_ENTITY_ENTRY, new ClassMapping(ReflectionApi.getPrivateInnerClass(ReflectionApi.getNMSClass(protocolPackage, "ClientboundPlayerInfoUpdatePacket"), "c"), new HashMap<>(){{put("uuid", "a"); put("profile", "b"); put("listed", "c"); put("latency", "d"); put("gameMode", "e"); put("displayName", "f"); put("chatSession", "g"); }}, new HashMap<>(){{ put("create", "a"); }}));
+        mappings.put(ADD_ENTITY_ACTION, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "ClientboundPlayerInfoUpdatePacket$a"), new HashMap<>(){{ put("ADD", "ADD_PLAYER"); put("CHAT", "INITIALIZE_CHAT"); put("GAMEMODE", "UPDATE_GAME_MODE"); put("LISTED", "UPDATE_LISTED"); put("PING", "UPDATE_LATENCY"); put("NAME", "UPDATE_DISPLAY_NAME"); }}, new HashMap<>()));
+        //We do not need to add attributes mapping because we can init this packet with de given constructor
+        mappings.put(REMOVE_ENTITY, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "ClientboundPlayerInfoRemovePacket"), new HashMap<>(), new HashMap<>()));
+        //Same
+        mappings.put(DESTROY_ENTITY, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "PacketPlayOutEntityDestroy"), new HashMap<>(), new HashMap<>()));
+
+    }
+
+    public static void attemptSpawnEntity(Player player)
+    {
+        GameProfile profile = new GameProfile(UUID.randomUUID(), "Hello");
+        profile.getProperties().put("textures", NPCApi.getProperty("Lucaa_08"));
+
+        ClassMapping actionsMap = mappings.get(ADD_ENTITY_ACTION);
+        ObjectMapping entryMap = mappings.get(ADD_ENTITY_ENTRY).unsafe_newInstance();
+        EnumSet actions = EnumSet.of(actionsMap.getEnumValue("ADD"), actionsMap.getEnumValue("LISTED"), actionsMap.getEnumValue("NAME"));
+
+        entryMap.set("uuid", profile.getId())
+                .set("profile", profile)
+                .set("listed", true)
+                .set("latency", 40)
+                .set("gameMode", PacketsUtils.NMS_GameMode.CREATIVE.getGameMode())
+                .set("displayName", PacketsUtils.getChatComponent("§bHello NPC"))
+                .set("chatSession", null);
+
+        Object packet1 = mappings.get(ADD_ENTITY).unsafe_newInstance().set("actions", actions).set("entries", List.of(entryMap.invoke("create"))).packet();
+        Object packet2 = mappings.get(SPAWN_ENTITY).unsafe_newInstance().set("id", 144).set("uuid", profile.getId()).set("x", 0.5).set("y", 90.0).set("z", 0.5).set("yaw", (byte)0).set("pitch", (byte)0).packet();
+        Object packet3 = mappings.get(ENTITY_HEAD_ROT).unsafe_newInstance().set("id", 144).set("head", (byte)45.0).packet();
+
+        //skin
+
+        ((CraftPlayer)player).getHandle().c.a((Packet<?>)packet1);
+        ((CraftPlayer)player).getHandle().c.a((Packet<?>)packet2);
+        ((CraftPlayer)player).getHandle().c.a((Packet<?>)packet3);
+
     }
 
     public static ClientboundPlayerInfoUpdatePacket addEntity(EntityPlayer entity)

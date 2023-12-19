@@ -1,6 +1,5 @@
 package ch.luca008.SpigotApi.Api;
 
-import ch.luca008.SpigotApi.Packets.EntityPackets;
 import ch.luca008.SpigotApi.Utils.Logger;
 import org.bukkit.Bukkit;
 
@@ -9,7 +8,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.Map;
 
 public class ReflectionApi {
@@ -53,7 +51,6 @@ public class ReflectionApi {
     }
 
     public final static Version SERVER_VERSION;
-    private final static Map<String,ClassMapping> mappings = new HashMap<>();
 
     static {
 
@@ -74,20 +71,12 @@ public class ReflectionApi {
             Logger.error("Failed to find a suitable MC version for SpigotApi. Some of the functionalities like Team, Scoreboard, NPC, etc.. Api wont be enabled.");
         } else {
             Logger.info("Found Minecraft server with protocol version " + SERVER_VERSION.protocol + " which SpigotApi can use to deliver your code a lot of packets!");
-            mappings.putAll(EntityPackets.getMappings());
-            //add all mappings, do not forget to put the classname before the packet name for the key. E.G EntityPackets_AddEntity (to avoid dup keys if TeamsPackets also have a AddEntity packet to add an entity in a team)
         }
 
     }
 
     private static Object theUnsafe;
     private static Method alloc;
-
-    @Nullable
-    public static ClassMapping getMappingForClass(String clazz)
-    {
-        return mappings.get(clazz);
-    }
 
     private static Class<?> getClazz(String pathToClass) {
         try {
@@ -218,30 +207,27 @@ public class ReflectionApi {
         return getField(clazz, null, fieldname);
     }
 
-    public static Object getEnumValue(Class<?> enumClazz, String enumValue){
+    @Nullable
+    public static Enum getEnumValue(Class<?> enumClazz, String enumValue){
+        if (!Enum.class.isAssignableFrom(enumClazz)) {
+            Logger.error("The class \"" + enumClazz + "\" does not extends Enum.");
+            return null;
+        }
         try {
-            Method valueOf = enumClazz.getDeclaredMethod("valueOf", String.class);
-            valueOf.setAccessible(true);
-            return valueOf.invoke(enumClazz, enumValue);
-        } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+            return Enum.valueOf((Class<? extends Enum>)enumClazz, enumValue);
+        } catch (SecurityException | IllegalArgumentException | NullPointerException | ClassCastException e) {
             e.printStackTrace();
             return null;
         }
     }
 
-    public record ApiField(String fieldName, boolean isStaticField){
-        public ApiField(String fieldName) {
-            this(fieldName, false);
-        }
-    }
-
     public static class ClassMapping {
 
-        private final Map<String, ApiField> classFields;
+        private final Map<String, String> classFields;
         private final Map<String, String> classMethods;
         private final Class<?> clazz;
 
-        public ClassMapping(Class<?> clazz, Map<String,ApiField> fields, Map<String,String> methods)
+        public ClassMapping(Class<?> clazz, Map<String,String> fields, Map<String,String> methods)
         {
             this.clazz = clazz;
             this.classFields = fields;
@@ -278,7 +264,7 @@ public class ReflectionApi {
         }
 
         @Nullable
-        private ApiField getField(String name)
+        private String getField(String name)
         {
             return classFields.get(name);
         }
@@ -286,39 +272,49 @@ public class ReflectionApi {
         @Nullable
         public Object getFieldValue(String field, @Nullable Object obj)
         {
-            ApiField f = getField(field);
+            String f = getField(field);
             if(f==null)
                 return null;
-            if(f.isStaticField())
-                return getStaticField(clazz, f.fieldName());
             if(obj == null)
-                return null;
-            return ReflectionApi.getField(clazz, obj, f.fieldName());
+                return getStaticField(clazz, f);
+            return ReflectionApi.getField(clazz, obj, f);
         }
 
         public void setFieldValue(String field, @Nullable Object obj, Object value)
         {
-            ApiField f = getField(field);
+            String f = getField(field);
             if(f==null)
                 return;
-            if(f.isStaticField())
-                setField(clazz, null, f.fieldName(), value);
-            if(obj == null)
-                return;
-            setField(clazz, obj, f.fieldName(), value);
+            setField(clazz, obj, f, value);
+        }
+
+        @Nullable
+        public Enum getEnumValue(String field)
+        {
+            String f = getField(field);
+            if(f==null)
+                return null;
+            return ReflectionApi.getEnumValue(clazz, f);
         }
 
     }
 
     public record ObjectMapping(ClassMapping mapping, Object packet){
 
-        public void set(String field, Object value){
+        public ObjectMapping set(String field, Object value){
             mapping.setFieldValue(field, packet, value);
+            return this;
         }
 
         @Nullable
         public Object get(String field){
             return mapping.getFieldValue(field, packet);
+        }
+
+        @Nullable
+        public Enum getEnum(String field)
+        {
+            return mapping.getEnumValue(field);
         }
 
         @Nullable
