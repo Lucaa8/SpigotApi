@@ -1,22 +1,18 @@
 package ch.luca008.SpigotApi.Packets;
 
-import ch.luca008.SpigotApi.Api.NPCApi;
 import ch.luca008.SpigotApi.Api.ReflectionApi;
+import ch.luca008.SpigotApi.Api.ReflectionApi.ClassMapping;
+import ch.luca008.SpigotApi.Api.ReflectionApi.ObjectMapping;
+import ch.luca008.SpigotApi.Api.ReflectionApi.Version;
+import ch.luca008.SpigotApi.Utils.Logger;
 import com.mojang.authlib.GameProfile;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.*;
-import net.minecraft.network.syncher.DataWatcher;
-import net.minecraft.network.syncher.DataWatcherObject;
-import net.minecraft.network.syncher.DataWatcherRegistry;
-import net.minecraft.server.level.EntityPlayer;
-import net.minecraft.world.entity.player.EntityHuman;
+import com.mojang.authlib.properties.Property;
 import org.bukkit.Location;
 
+import javax.annotation.Nullable;
 import java.util.*;
-
-import ch.luca008.SpigotApi.Api.ReflectionApi.*;
-import org.bukkit.craftbukkit.v1_20_R1.entity.CraftPlayer;
-import org.bukkit.entity.Player;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 public class EntityPackets
 {
@@ -28,18 +24,51 @@ public class EntityPackets
     private static final String ENTITY_HEAD_ROT = "EntityHeadRotationPacket"; //For 1.20.1
     private static final String REMOVE_ENTITY = "RemoveEntityInfoPacket";
     private static final String DESTROY_ENTITY = "DestroyEntityPacket";
+    private static final String ENTITY_METADATA = "EntityMetaDataPacket";
+
+    private static final AtomicInteger ENTITY_COUNTER;
+    private static final Object data_watcher;
+    //See index 17 on https://wiki.vg/Entity_metadata#Player for the 2 next attributes
+    private static final int skinId = 17;
+    private static final byte byteMask = (byte)0x7F;
+    private static final Object type_player;
+    //Used to convert F3 pitch and yaw to client values
+    private static final Function<Float, Byte> convert = (x)->(byte)(x*256.0F/360.0F);
 
     private static final Map<String, ClassMapping> mappings = new HashMap<>();
+
 
     static {
 
         Version serverVersion = ReflectionApi.SERVER_VERSION;
         String protocolPackage = "network.protocol.game";
+        String syncherPackage = "network.syncher";
         if(serverVersion == Version.MC_1_20){
             mappings.put(SPAWN_ENTITY, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "PacketPlayOutNamedEntitySpawn"), new HashMap<>(){{ put("id", "a"); put("uuid", "b"); put("x", "c"); put("y", "d"); put("z", "e"); put("yaw", "f"); put("pitch", "g"); }},  new HashMap<>()));
             mappings.put(ENTITY_HEAD_ROT, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "PacketPlayOutEntityHeadRotation"), new HashMap<>() {{ put("id", "a"); put("head", "b"); }}, new HashMap<>()));
+            type_player = null;
         } else {
             mappings.put(SPAWN_ENTITY, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "PacketPlayOutSpawnEntity"), new HashMap<>(){{ put("id", "c"); put("uuid", "d"); put("type", "e"); put("x", "f"); put("y", "g"); put("z", "h"); put("velX", "i"); put("velY", "j"); put("velZ", "k"); put("pitch", "l"); put("yaw", "m"); put("head", "n"); put("data", "o"); }}, new HashMap<>()));
+
+            String playerField = "bt";
+            if(serverVersion == Version.MC_1_20_3)
+            {
+                playerField = "bv";
+            }
+            type_player = ReflectionApi.getStaticField(ReflectionApi.getNMSClass("world.entity", "EntityTypes"), playerField);
+        }
+
+        ENTITY_COUNTER = (AtomicInteger) ReflectionApi.getStaticField(ReflectionApi.getNMSClass("world.entity", "Entity"), "d");
+
+        Object byte_serializer = ReflectionApi.getStaticField(ReflectionApi.getNMSClass(syncherPackage, "DataWatcherRegistry"), "a");
+        Class<?> dw_b = ReflectionApi.getNMSClass(syncherPackage, "DataWatcher$b");
+        Class<?> i_dws = ReflectionApi.getNMSClass(syncherPackage, "DataWatcherSerializer");
+        if(byte_serializer != null && dw_b != null && i_dws != null)
+        {
+            data_watcher = ReflectionApi.newInstance(dw_b, new Class[]{int.class, i_dws, Object.class}, skinId, byte_serializer, byteMask);
+        } else {
+            data_watcher = null;
+            Logger.error("Failed to get the DataWatcher to update NPC skins. Please consider reporting this problem as your Spigot version may be bad supported by the API.");
         }
 
         mappings.put(ADD_ENTITY, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "ClientboundPlayerInfoUpdatePacket"), new HashMap<>() {{ put("actions", "a"); put("entries", "b"); }}, new HashMap<>()));
@@ -50,93 +79,88 @@ public class EntityPackets
         mappings.put(REMOVE_ENTITY, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "ClientboundPlayerInfoRemovePacket"), new HashMap<>(), new HashMap<>()));
         //Same
         mappings.put(DESTROY_ENTITY, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "PacketPlayOutEntityDestroy"), new HashMap<>(), new HashMap<>()));
+        //Same
+        mappings.put(ENTITY_METADATA, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "PacketPlayOutEntityMetadata"), new HashMap<>(), new HashMap<>()));
 
     }
 
-    public static void attemptSpawnEntity(Player player)
+    public static Object[] addEntity(String name, @Nullable UUID uuid, @Nullable Property textures, boolean listed, int latency, @Nullable String displayName)
     {
-        GameProfile profile = new GameProfile(UUID.randomUUID(), "Hello");
-        profile.getProperties().put("textures", NPCApi.getProperty("Lucaa_08"));
+
+        if(displayName == null)
+            displayName = name;
+
+        GameProfile profile = new GameProfile(uuid == null ? UUID.randomUUID() : uuid, name);
+        if(textures != null)
+            profile.getProperties().put("textures", textures);
 
         ClassMapping actionsMap = mappings.get(ADD_ENTITY_ACTION);
         ObjectMapping entryMap = mappings.get(ADD_ENTITY_ENTRY).unsafe_newInstance();
-        EnumSet actions = EnumSet.of(actionsMap.getEnumValue("ADD"), actionsMap.getEnumValue("LISTED"), actionsMap.getEnumValue("NAME"));
+
+        EnumSet actions = EnumSet.of(actionsMap.getEnumValue("ADD"));
+
+        if(listed)
+            actions.add(actionsMap.getEnumValue("LISTED"));
+
+        if(latency >= 0)
+            actionsMap.getEnumValue("PING");
+
+        actions.add(actionsMap.getEnumValue("NAME"));
 
         entryMap.set("uuid", profile.getId())
                 .set("profile", profile)
-                .set("listed", true)
-                .set("latency", 40)
+                .set("listed", listed)
+                .set("latency", latency)
                 .set("gameMode", PacketsUtils.NMS_GameMode.CREATIVE.getGameMode())
-                .set("displayName", PacketsUtils.getChatComponent("§bHello NPC"))
+                .set("displayName", PacketsUtils.getChatComponent(displayName))
                 .set("chatSession", null);
 
-        Object packet1 = mappings.get(ADD_ENTITY).unsafe_newInstance().set("actions", actions).set("entries", List.of(entryMap.invoke("create"))).packet();
-        Object packet2 = mappings.get(SPAWN_ENTITY).unsafe_newInstance().set("id", 144).set("uuid", profile.getId()).set("x", 0.5).set("y", 90.0).set("z", 0.5).set("yaw", (byte)0).set("pitch", (byte)0).packet();
-        Object packet3 = mappings.get(ENTITY_HEAD_ROT).unsafe_newInstance().set("id", 144).set("head", (byte)45.0).packet();
-
-        //skin
-
-        ((CraftPlayer)player).getHandle().c.a((Packet<?>)packet1);
-        ((CraftPlayer)player).getHandle().c.a((Packet<?>)packet2);
-        ((CraftPlayer)player).getHandle().c.a((Packet<?>)packet3);
-
+        return new Object[]{ mappings.get(ADD_ENTITY).unsafe_newInstance().set("actions", actions).set("entries", List.of(entryMap.invoke("create"))).packet() };
     }
 
-    public static ClientboundPlayerInfoUpdatePacket addEntity(EntityPlayer entity)
+    public static Object[] spawnEntity(int entityId, UUID npc, Location location, float yaw, float pitch, float headYaw)
     {
-        return new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.a.a, entity);
+
+        Object PacketPlayOutSpawnEntity = mappings.get(SPAWN_ENTITY).unsafe_newInstance()
+                .set("id", entityId).set("uuid", npc)
+                .set("type", type_player)
+                .set("x", location.getBlockX()+0.5f).set("y", location.getBlockY()*1.0f).set("z", location.getBlockZ()+0.5f)
+                .set("velX", 0).set("velY", 0).set("velZ", 0)
+                .set("yaw", convert.apply(yaw)).set("pitch", convert.apply(pitch)).set("head", convert.apply(headYaw))
+                .set("data", 0).packet();
+
+        Object PacketPlayOutEntityHeadRotation = null;
+        if(ReflectionApi.SERVER_VERSION == Version.MC_1_20)
+        {
+            PacketPlayOutEntityHeadRotation = mappings.get(ENTITY_HEAD_ROT).unsafe_newInstance().set("id", entityId).set("head", convert.apply(headYaw)).packet();
+        }
+
+        Object[] packets = new Object[PacketPlayOutEntityHeadRotation==null?1:2];
+        packets[0] = PacketPlayOutSpawnEntity;
+        if(packets.length == 2)
+            packets[1] = PacketPlayOutEntityHeadRotation;
+
+        return packets;
     }
 
-    public static PacketPlayOutNamedEntitySpawn spawnEntity(EntityPlayer entity, Location location, float yaw, float pitch)
+    public static Object[] removeEntity(UUID uuid)
     {
-        /*ObjectMapping PacketObject = ReflectionApi.getMappingForClass(SPAWN_ENTITY).unsafe_newInstance();
-        PacketObject.set("id", 144);
-        PacketObject.set("uuid", UUID.randomUUID());
-        PacketObject.set("x", 0.5);
-        PacketObject.set("y", 100.0);
-        PacketObject.set("z", 0.5);
-        PacketObject.set("yaw", (byte)((int)(90.0*256.0F/360.0F)));
-        PacketObject.set("pitch", (byte)0);
-        return PacketObject.packet();*/
-        PacketPlayOutNamedEntitySpawn packet = new PacketPlayOutNamedEntitySpawn(entity);
-        ReflectionApi.setField(packet, "c", location.getBlockX()+0.5f);
-        ReflectionApi.setField(packet, "d", location.getBlockY()*1.0f);
-        ReflectionApi.setField(packet, "e", location.getBlockZ()+0.5f);
-        ReflectionApi.setField(packet, "f", (byte)((int)(yaw*256.0F/360.0F)));
-        ReflectionApi.setField(packet, "g", (byte)((int)(pitch*256.0F/360.0F)));
-        return packet;
+        return new Object[]{mappings.get(REMOVE_ENTITY).newInstance(new Class[]{List.class}, List.of(uuid)).packet()};
     }
 
-    public static ClientboundPlayerInfoRemovePacket removeEntity(EntityPlayer entity)
+    public static Object[] destroyEntity(int entityId)
     {
-        GameProfile gp = (GameProfile) ReflectionApi.getField(EntityHuman.class, entity, "cp");
-        return new ClientboundPlayerInfoRemovePacket(new ArrayList<>(List.of(gp.getId())));
-    }
-
-    public static PacketPlayOutEntityDestroy destroyEntity(EntityPlayer entity)
-    {
-        return new PacketPlayOutEntityDestroy(entity.getBukkitEntity().getEntityId());
-    }
-
-    public static PacketPlayOutEntityHeadRotation headRotation(EntityPlayer entity, float yaw)
-    {
-        return new PacketPlayOutEntityHeadRotation(entity, (byte)((yaw%360)*256/360));
+        return new Object[]{mappings.get(DESTROY_ENTITY).newInstance(new Class[]{int[].class}, (Object) new int[]{entityId}).packet()} //do not remove this cast
     }
 
     /**
      * Add the second layer to this entity's skin
-     * @param entity The entity to update on the client
-     * @param skinMask See index 17 on <a href="https://wiki.vg/Entity_metadata#Player">Player</a>
+     * @param entityId The entity to update on the client
      * @return A packet which update this entity on the client
      */
-    public static PacketPlayOutEntityMetadata updateSkin(EntityPlayer entity, byte skinMask)
+    public static Object[] updateSkin(int entityId)
     {
-        return new PacketPlayOutEntityMetadata(entity.getBukkitEntity().getEntityId(), new ArrayList<>(List.of(DataWatcher.b.a(new DataWatcherObject<>(17, DataWatcherRegistry.a), skinMask))));
-    }
-
-    public static PacketPlayOutEntity.PacketPlayOutEntityLook rotateEntity(EntityPlayer entity, int yaw, int pitch)
-    {
-        return new PacketPlayOutEntity.PacketPlayOutEntityLook(entity.getBukkitEntity().getEntityId(), (byte)((int)(yaw*256.0F/360.0F)), (byte)((int)(pitch*256.0F/360.0F)), true);
+        return new Object[]{mappings.get(ENTITY_METADATA).newInstance(new Class[]{int.class, List.class}, entityId, List.of(data_watcher)).packet()};
     }
 
 }

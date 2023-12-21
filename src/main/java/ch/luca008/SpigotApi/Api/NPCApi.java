@@ -19,7 +19,7 @@ import org.bukkit.entity.Player;
 import java.util.Objects;
 import java.util.UUID;
 
-public class NPCApi {
+public class NPCApi { //adapter l'api puis tester spawnnpc + handle packet (netty chan)
 
     public enum Directions {
         OTHER(0, 0, 0), NORTH(228, 180, 0), EAST(-138, -90, 0), WEST(138, 90, 0), SOUTH(0, 0, 0);

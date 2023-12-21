@@ -1,5 +1,6 @@
 package ch.luca008.SpigotApi.Api;
 
+import ch.luca008.SpigotApi.Packets.PacketsUtils;
 import ch.luca008.SpigotApi.Packets.TeamsPackets;
 import ch.luca008.SpigotApi.Packets.TeamsPackets.Mode;
 import ch.luca008.SpigotApi.SpigotApi;
@@ -8,10 +9,7 @@ import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.EventLoop;
 import net.minecraft.EnumChatFormat;
-import net.minecraft.network.NetworkManager;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.server.level.EntityPlayer;
-import net.minecraft.server.network.PlayerConnection;
 import net.minecraft.world.scores.ScoreboardTeamBase.EnumNameTagVisibility;
 import net.minecraft.world.scores.ScoreboardTeamBase.EnumTeamPush;
 import org.bukkit.Bukkit;
@@ -154,30 +152,24 @@ public class MainApi {
 
     public static class SpigotPlayer{
 
-        public EntityPlayer getEntityPlayer(Player player){
-            Class<?> craftPlayer = ReflectionApi.getOBCClass("entity", "CraftPlayer");
-            return (EntityPlayer) ReflectionApi.invoke(craftPlayer, player, "getHandle", new Class[0], new Object[0]);
+        public Object getEntityPlayer(Player player){
+            return PacketsUtils.getEntityPlayer(player);
         }
 
-        public PlayerConnection getConnection(Player player) {
-            return getEntityPlayer(player).c;
-        }
-
-        public void sendPacket(Collection<? extends Player> collection, Packet<?> packet) {
+        public void sendPacket(Collection<? extends Player> collection, Object packet) {
             collection.forEach(player -> sendPacket(player, packet));
         }
 
-        public void sendPackets(Collection<? extends Player> collection, Packet<?>[] packets) {
+        public void sendPackets(Collection<? extends Player> collection, Object[] packets) {
             collection.forEach(player -> sendPackets(player, packets));
         }
 
-        public void sendPacket(Player player, Packet<?> packet) {
-            NetworkManager nm = (NetworkManager) ReflectionApi.getField(getConnection(player), "h");
-            nm.a(packet);
+        public void sendPacket(Player player, Object packet) {
+            PacketsUtils.sendPacket(player, packet);
         }
 
-        public void sendPackets(Player player, Packet<?>[] packets) {
-            for (Packet<?> packet : packets) {
+        public void sendPackets(Player player, Object[] packets) {
+            for (Object packet : packets) {
                 sendPacket(player, packet);
             }
         }
@@ -190,7 +182,7 @@ public class MainApi {
 
     public interface PacketReceived {
 
-        void receive(Packet<?> packet, Cancellable cancellable);
+        void receive(Object packet, Cancellable cancellable);
 
     }
 
@@ -205,16 +197,11 @@ public class MainApi {
             register();
         }
 
-        private NetworkManager getNetwork(){
-            PlayerConnection conn = SpigotApi.getMainApi().players().getConnection(this.player);
-            return (NetworkManager) ReflectionApi.getField(conn, "h");
-        }
-
         private void register(){
 
             Bukkit.getServer().getPluginManager().registerEvents(this, SpigotApi.getInstance());
 
-            getNetwork().m.pipeline().addBefore("packet_handler", this.player.getName(), new ChannelDuplexHandler(){
+            PacketsUtils.getPlayerChannel(player).pipeline().addBefore("packet_handler", this.player.getName(), new ChannelDuplexHandler(){
                 public void channelRead(ChannelHandlerContext channelHandlerContext, Object packet) throws Exception {
                     Cancellable c = new Cancellable() {
                         private boolean cancelled = false;
@@ -246,7 +233,7 @@ public class MainApi {
 
             HandlerList.unregisterAll(this);
 
-            final Channel channel = getNetwork().m;
+            final Channel channel = PacketsUtils.getPlayerChannel(player);
             EventLoop loop = channel.eventLoop();
             loop.submit(() -> {
                 channel.pipeline().remove(this.player.getName());
