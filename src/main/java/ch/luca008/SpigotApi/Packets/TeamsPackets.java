@@ -1,36 +1,96 @@
 package ch.luca008.SpigotApi.Packets;
 
 import ch.luca008.SpigotApi.Api.ReflectionApi;
+import ch.luca008.SpigotApi.Api.ReflectionApi.*;
 import net.minecraft.EnumChatFormat;
 import net.minecraft.network.chat.IChatBaseComponent;
 import net.minecraft.network.protocol.game.PacketPlayOutScoreboardTeam;
 import net.minecraft.world.scores.Scoreboard;
 import net.minecraft.world.scores.ScoreboardTeamBase.*;
+import org.bukkit.entity.Player;
 
 import java.util.*;
 
 public class TeamsPackets
 {
 
+    private static final String TEAM_PACKET = "SetPlayerTeamPacket";
+    private static final String TEAM_PACKET_PARAMETERS = TEAM_PACKET + "Parameters";
+
+    private static final Map<String, ClassMapping> mappings = new HashMap<>();
+
+    static {
+
+        //not used yet bc all supported versions have the same fields, but maybe we'll need it in the future
+        Version v = ReflectionApi.SERVER_VERSION;
+
+        mappings.put(TEAM_PACKET, new ClassMapping(ReflectionApi.getNMSClass("network.protocol.game", "PacketPlayOutScoreboardTeam"), new HashMap<>(){{ put("METHOD_ADD", "a"); put("METHOD_REMOVE", "b"); put("METHOD_CHANGE", "c"); put("METHOD_JOIN", "d"); put("METHOD_LEAVE", "e"); put("method", "h"); put("name", "i"); put("players", "j"); put("parameters", "k"); }}, new HashMap<>()));
+        mappings.put(TEAM_PACKET_PARAMETERS, new ClassMapping(ReflectionApi.getNMSClass("network.protocol.game", "PacketPlayOutScoreboardTeam$b"), new HashMap<>(){{ put("displayName", "a"); put("playerPrefix", "b"); put("playerSuffix", "c"); put("nametagVisibility", "d"); put("collisionRule", "e"); put("color", "f"); put("options", "g"); }}, new HashMap<>()));
+
+    }
+
+
     public enum Mode
     {
-        CREATE(0),
-        DELETE(1),
-        UPDATE(2),
-        ADD_ENTITY(3),
-        REMOVE_ENTITY(4);
+        CREATE("METHOD_ADD"),
+        DELETE("METHOD_REMOVE"),
+        UPDATE("METHOD_CHANGE"),
+        ADD_ENTITY("METHOD_JOIN"),
+        REMOVE_ENTITY("METHOD_LEAVE");
 
         private final int mode;
 
-        Mode(int mode)
+        Mode(String mode)
         {
-            this.mode = mode;
+            this.mode = (int) mappings.get(TEAM_PACKET).getFieldValue(mode, null);
         }
 
         public int getMode()
         {
             return this.mode;
         }
+    }
+
+    public enum NameTagVisibility {
+        ALWAYS("always"),
+        NEVER("never"),
+        HIDE_FOR_OTHER_TEAMS("hideForOtherTeams"),
+        HIDE_FOR_OWN_TEAM("hideForOwnTeam");
+
+        private final String mcName;
+        NameTagVisibility(String mcName)
+        {
+            this.mcName = mcName;
+        }
+    }
+
+    public enum Collisions {
+        ALWAYS("always"),
+        NEVER("never"),
+        PUSH_OTHER_TEAMS("pushOtherTeams"),
+        PUSH_OWN_TEAM("pushOwnTeam");
+
+        private final String mcName;
+        Collisions(String mcName)
+        {
+            this.mcName = mcName;
+        }
+    }
+
+    public static void attemptTeam(Player p)
+    {
+
+        Mode create = Mode.CREATE;
+        ObjectMapping packet_create_params = mappings.get(TEAM_PACKET_PARAMETERS).unsafe_newInstance();
+        packet_create_params
+                .set("displayName", PacketsUtils.getChatComponent("§aTestTeam"))
+                .set("playerPrefix", PacketsUtils.getChatComponent("§cAdmin | "))
+                .set("playerSuffix", PacketsUtils.getChatComponent(""))
+                .set("nametagVisibility", NameTagVisibility.ALWAYS.mcName)
+                .set("collisionRule", Collisions.NEVER)
+                .set("color", "")
+                .set("options", 0);
+
     }
 
     private static PacketPlayOutScoreboardTeam packet(String uniqueName,

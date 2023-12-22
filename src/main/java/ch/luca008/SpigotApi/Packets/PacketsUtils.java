@@ -18,6 +18,7 @@ public class PacketsUtils {
 
     private static final Class<?> CRAFT_PLAYER;
     private static final Class<?> ENUM_GAMEMODE;
+    //ajouter enumchatcolor
     private static final String CHAT_COMPONENT = "ChatComponent";
     private static final String ENTITY_PLAYER = "EntityPlayer";
     private static final Field network_manager;
@@ -73,6 +74,14 @@ public class PacketsUtils {
         {
             return ReflectionApi.getEnumValue(ENUM_GAMEMODE, this.name());
         }
+
+    }
+
+    public enum ChatColor {
+
+        BLACK, DARK_BLUE, DARK_GREEN, DARK_AQUA, DARK_RED, DARK_PURPLE, GOLD, GRAY, DARK_GRAY, BLUE, GREEN, AQUA, RED, LIGHT_PURPLE, YELLOW, WHITE, OBFUSCATED, BOLD, STRIKETHROUGH, UNDERLINE, ITALIC, RESET;
+
+
 
     }
 
