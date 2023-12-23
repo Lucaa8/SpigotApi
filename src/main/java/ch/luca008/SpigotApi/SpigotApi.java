@@ -1,11 +1,7 @@
 package ch.luca008.SpigotApi;
 
 import ch.luca008.SpigotApi.Api.*;
-import ch.luca008.SpigotApi.Packets.EntityPackets;
-import ch.luca008.SpigotApi.Packets.PacketsUtils;
-import ch.luca008.SpigotApi.Packets.TeamsPackets;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
@@ -46,22 +42,15 @@ public class SpigotApi extends JavaPlugin implements Listener {
         Bukkit.getServer().getPluginManager().registerEvents(promptApi, this);
         Bukkit.getServer().getPluginManager().registerEvents(npcApi, this);
 
+        //TODO: remove
         Bukkit.getServer().getPluginManager().registerEvents(this, this);
-
-        TeamAPI.Team t1 = new TeamAPI.TeamBuilder("admin")
-                .setPrefix("§cAdmin | ")
-                .setColor(PacketsUtils.ChatColor.RED)
-                .create();
-        getTeamApi().registerTeam(t1);
 
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent e)
     {
-        getTeamApi().addPlayer("admin", e.getPlayer().getName(), true);
-        Bukkit.getScheduler().runTaskLater(SpigotApi.getInstance(), ()->getTeamApi().getTeam("admin").setPrefix(e.getPlayer().getName(), true), 80L);
-        Bukkit.getScheduler().runTaskLater(SpigotApi.getInstance(), ()->getTeamApi().removePlayer(e.getPlayer().getName()), 100L);
+        //TODO: test scoreboard, promp and nbttags apis, then remove implements listener
     }
 
     public void onDisable(){
