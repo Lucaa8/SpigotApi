@@ -234,6 +234,11 @@ public class ReflectionApi {
             this.classMethods = methods;
         }
 
+        public Class<?> getMappedClass()
+        {
+            return clazz;
+        }
+
         public ObjectMapping unsafe_newInstance()
         {
             return new ObjectMapping(this, ReflectionApi.unsafe_allocInstance(this.clazz));

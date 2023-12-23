@@ -25,6 +25,9 @@ public class EntityPackets
     private static final String REMOVE_ENTITY = "RemoveEntityInfoPacket";
     private static final String DESTROY_ENTITY = "DestroyEntityPacket";
     private static final String ENTITY_METADATA = "EntityMetaDataPacket";
+    private static final String IN_USE_ENTITY = "UseEntityPacket"; //PlayIn
+    private static final String IN_USE_ENTITY_ACTION = IN_USE_ENTITY + "Action"; //PlayIn
+    private static final String IN_USE_ENTITY_INTERACTION = IN_USE_ENTITY + "InteractionAction"; //PlayIn
 
     private static final AtomicInteger ENTITY_COUNTER;
     private static final Object data_watcher;
@@ -81,7 +84,16 @@ public class EntityPackets
         mappings.put(DESTROY_ENTITY, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "PacketPlayOutEntityDestroy"), new HashMap<>(), new HashMap<>()));
         //Same
         mappings.put(ENTITY_METADATA, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "PacketPlayOutEntityMetadata"), new HashMap<>(), new HashMap<>()));
+        Class<?> PacketPlayInUseEntity = ReflectionApi.getNMSClass(protocolPackage, "PacketPlayInUseEntity");
+        mappings.put(IN_USE_ENTITY, new ClassMapping(PacketPlayInUseEntity, new HashMap<>(){{ put("entityId", "a"); put("action", "b"); put("usingSecondaryAction", "c"); }}, new HashMap<>()));
+        mappings.put(IN_USE_ENTITY_ACTION, new ClassMapping(ReflectionApi.getPrivateInnerClass(PacketPlayInUseEntity, "EnumEntityUseAction"), new HashMap<>(), new HashMap<>(){{ put("getType", "a"); }}));
+        mappings.put(IN_USE_ENTITY_INTERACTION, new ClassMapping(ReflectionApi.getPrivateInnerClass(PacketPlayInUseEntity, "d"), new HashMap<>(){{ put("hand", "a"); }}, new HashMap<>()));
 
+    }
+
+    public static int nextId()
+    {
+        return ENTITY_COUNTER.incrementAndGet();
     }
 
     public static Object[] addEntity(String name, @Nullable UUID uuid, @Nullable Property textures, boolean listed, int latency, @Nullable String displayName)
@@ -150,7 +162,7 @@ public class EntityPackets
 
     public static Object[] destroyEntity(int entityId)
     {
-        return new Object[]{mappings.get(DESTROY_ENTITY).newInstance(new Class[]{int[].class}, (Object) new int[]{entityId}).packet()} //do not remove this cast
+        return new Object[]{mappings.get(DESTROY_ENTITY).newInstance(new Class[]{int[].class}, (Object) new int[]{entityId}).packet()}; //do not remove this cast
     }
 
     /**
@@ -161,6 +173,34 @@ public class EntityPackets
     public static Object[] updateSkin(int entityId)
     {
         return new Object[]{mappings.get(ENTITY_METADATA).newInstance(new Class[]{int.class, List.class}, entityId, List.of(data_watcher)).packet()};
+    }
+
+    public static Object[] getInteractionFromPacket(Object packet)
+    {
+
+        ClassMapping mapping = mappings.get(IN_USE_ENTITY);
+        if(packet.getClass() != mapping.getMappedClass())
+            return null;
+
+        Object action = mapping.getFieldValue("action", packet);
+        if(action == null)
+            return null;
+
+        Enum actionType = (Enum)mappings.get(IN_USE_ENTITY_ACTION).invoke(action, "getType");
+        if(actionType == null || actionType.name().equals("INTERACT_AT"))
+            return null;
+
+        //When Right-clicking an entity on 1.9 or later, the server will send 2 UseEntity packet, one with MAIN_HAND and one with OFF_HAND, so all right-clicks are duplicated.
+        //I remove one of them so we keep only 1 callback call.
+        if(actionType.name().equals("INTERACT"))
+        {
+            Enum<?> hand = (Enum<?>) mappings.get(IN_USE_ENTITY_INTERACTION).getFieldValue("hand", action);
+            if(hand == null || hand.name().equals("OFF_HAND"))
+                return null;
+        }
+
+        return new Object[]{mapping.getFieldValue("entityId", packet), actionType.name()};
+
     }
 
 }

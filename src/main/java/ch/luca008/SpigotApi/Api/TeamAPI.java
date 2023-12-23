@@ -1,10 +1,11 @@
 package ch.luca008.SpigotApi.Api;
 
-import ch.luca008.SpigotApi.Packets.TeamsPackets.*;
+import ch.luca008.SpigotApi.Packets.PacketsUtils.ChatColor;
+import ch.luca008.SpigotApi.Packets.TeamsPackets.Collisions;
+import ch.luca008.SpigotApi.Packets.TeamsPackets.Mode;
+import ch.luca008.SpigotApi.Packets.TeamsPackets.NameTagVisibility;
 import ch.luca008.SpigotApi.SpigotApi;
-import net.minecraft.EnumChatFormat;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.world.scores.ScoreboardTeamBase.*;
+import ch.luca008.SpigotApi.Utils.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -190,15 +191,12 @@ public class TeamAPI implements Listener {
         private final int sortOrder;
         private String prefix;
         private String suffix;
-        private EnumChatFormat color;
-        private final EnumNameTagVisibility nameTagVisibility;
-        private final EnumTeamPush collisions;
-        private final boolean friendlyFire;
-        private final boolean seeInvisibleFriends;
+        private ChatColor color;
+        private final NameTagVisibility nameTagVisibility;
+        private final Collisions collisions;
         private final ArrayList<String> entries;
 
-        private Team(String uniqueName, String displayName, int sortOrder, String prefix, String suffix, EnumChatFormat color, EnumNameTagVisibility nameTagVisibility,
-                     EnumTeamPush collisions, boolean friendlyFire, boolean seeInvisibleFriends, ArrayList<String> entries) {
+        private Team(String uniqueName, String displayName, int sortOrder, String prefix, String suffix, ChatColor color, NameTagVisibility nameTagVisibility, Collisions collisions, ArrayList<String> entries) {
             this.uniqueName = uniqueName;
             this.displayName = displayName;
             this.sortOrder = sortOrder;
@@ -207,8 +205,6 @@ public class TeamAPI implements Listener {
             this.color = color;
             this.nameTagVisibility = nameTagVisibility;
             this.collisions = collisions;
-            this.friendlyFire = friendlyFire;
-            this.seeInvisibleFriends = seeInvisibleFriends;
             this.entries = entries;
         }
 
@@ -241,24 +237,16 @@ public class TeamAPI implements Listener {
             return suffix;
         }
 
-        public EnumChatFormat getColor() {
+        public ChatColor getColor() {
             return color;
         }
 
-        public EnumNameTagVisibility getNameTagVisibility() {
+        public NameTagVisibility getNameTagVisibility() {
             return nameTagVisibility;
         }
 
-        public EnumTeamPush getCollisions() {
+        public Collisions getCollisions() {
             return collisions;
-        }
-
-        public boolean isFriendlyFireAllowed() {
-            return friendlyFire;
-        }
-
-        public boolean canSeeInvisibleFriends() {
-            return seeInvisibleFriends;
         }
 
         public boolean hasEntry(String entry){
@@ -283,7 +271,7 @@ public class TeamAPI implements Listener {
             }
         }
 
-        public void setColor(EnumChatFormat color, boolean sendUpdate) {
+        public void setColor(ChatColor color, boolean sendUpdate) {
             this.color = color;
             if(sendUpdate){
                 update();
@@ -318,37 +306,46 @@ public class TeamAPI implements Listener {
 
         private void update(){
             MainApi api = SpigotApi.getMainApi();
-            Packet<?> updatePacket = api.packets().teams().getCreateOrUpdateTeamPacket(getReelUniqueName(), Mode.UPDATE, getDisplayName(),
-                    isFriendlyFireAllowed(), canSeeInvisibleFriends(), getNameTagVisibility(), getCollisions(), getColor(), getPrefix(), getSuffix());
-            api.players().sendPacket(Bukkit.getOnlinePlayers(), updatePacket);
+            Object[] updatePackets = api.packets().teams().getCreateOrUpdateTeamPacket(getReelUniqueName(), Mode.UPDATE, getDisplayName(),
+                    getNameTagVisibility(), getCollisions(), getColor(), getPrefix(), getSuffix());
+            if(updatePackets!=null)
+            {
+                api.players().sendPackets(Bukkit.getOnlinePlayers(), updatePackets);
+            }
         }
 
         private void updateEntries(Mode action, List<String> entries){
             MainApi api = SpigotApi.getMainApi();
-            Packet<?> updatePacket = null;
+            Object[] updatePackets = null;
             if(action==Mode.ADD_ENTITY){
-                updatePacket = api.packets().teams().getAddEntityTeamPacket(getReelUniqueName(), entries.toArray(new String[0]));
+                updatePackets = api.packets().teams().getAddEntityTeamPacket(getReelUniqueName(), entries.toArray(new String[0]));
             }else if(action==Mode.REMOVE_ENTITY){
-                updatePacket = api.packets().teams().getRemoveEntityTeamPacket(getReelUniqueName(), entries.toArray(new String[0]));
+                updatePackets = api.packets().teams().getRemoveEntityTeamPacket(getReelUniqueName(), entries.toArray(new String[0]));
             }
-            if(updatePacket!=null){
-                api.players().sendPacket(Bukkit.getOnlinePlayers(), updatePacket);
+            if(updatePackets!=null){
+                api.players().sendPackets(Bukkit.getOnlinePlayers(), updatePackets);
             }
         }
 
         public void sendCreatePacket(Player...players){
             MainApi api = SpigotApi.getMainApi();
             Collection<Player> pls = Arrays.stream(players).collect(Collectors.toList());
-            Packet<?> createPacket = api.packets().teams().getCreateOrUpdateTeamPacket(getReelUniqueName(), Mode.CREATE, getDisplayName(),
-                    isFriendlyFireAllowed(), canSeeInvisibleFriends(), getNameTagVisibility(), getCollisions(), getColor(), getPrefix(), getSuffix(), entries.toArray(new String[0]));
-            api.players().sendPacket(pls, createPacket);
+            Object[] createPackets = api.packets().teams().getCreateOrUpdateTeamPacket(getReelUniqueName(), Mode.CREATE, getDisplayName(),
+                    getNameTagVisibility(), getCollisions(), getColor(), getPrefix(), getSuffix(), entries.toArray(new String[0]));
+            if(createPackets != null)
+            {
+                api.players().sendPackets(pls, createPackets);
+            }
         }
 
         public void sendDeletePacket(Player...players){
             MainApi api = SpigotApi.getMainApi();
             Collection<Player> pls = Arrays.stream(players).collect(Collectors.toList());
-            Packet<?> deletePacket = api.packets().teams().getDeleteTeamPacket(getReelUniqueName());
-            api.players().sendPacket(pls, deletePacket);
+            Object[] deletePackets = api.packets().teams().getDeleteTeamPacket(getReelUniqueName());
+            if(deletePackets != null)
+            {
+                api.players().sendPackets(pls, deletePackets);
+            }
         }
 
         @Override
@@ -372,11 +369,9 @@ public class TeamAPI implements Listener {
         private int sortOrder = -1;
         private String prefix = "";
         private String suffix = "";
-        private EnumChatFormat color = EnumChatFormat.v;
-        private EnumNameTagVisibility nameTagVisibility = EnumNameTagVisibility.a;
-        private EnumTeamPush collisions = EnumTeamPush.a;
-        private boolean friendlyFire = true;
-        private boolean seeInvisibleFriends = false;
+        private ChatColor color = ChatColor.WHITE;
+        private NameTagVisibility nameTagVisibility = NameTagVisibility.ALWAYS;
+        private Collisions collisions = Collisions.ALWAYS;
         private ArrayList<String> entries = new ArrayList<>();
 
         /**
@@ -407,28 +402,18 @@ public class TeamAPI implements Listener {
             return this;
         }
 
-        public TeamBuilder setColor(EnumChatFormat color) {
+        public TeamBuilder setColor(ChatColor color) {
             this.color = color;
             return this;
         }
 
-        public TeamBuilder setNameTagVisibility(EnumNameTagVisibility nameTagVisibility) {
+        public TeamBuilder setNameTagVisibility(NameTagVisibility nameTagVisibility) {
             this.nameTagVisibility = nameTagVisibility;
             return this;
         }
 
-        public TeamBuilder setCollisions(EnumTeamPush collisions) {
+        public TeamBuilder setCollisions(Collisions collisions) {
             this.collisions = collisions;
-            return this;
-        }
-
-        public TeamBuilder setFriendlyFire(boolean friendlyFire) {
-            this.friendlyFire = friendlyFire;
-            return this;
-        }
-
-        public TeamBuilder setSeeInvisibleFriends(boolean seeInvisibleFriends) {
-            this.seeInvisibleFriends = seeInvisibleFriends;
             return this;
         }
 
@@ -439,10 +424,10 @@ public class TeamAPI implements Listener {
 
         public Team create(){
             if(uniqueName==null||uniqueName.length()==0||(uniqueName.length()>14&&sortOrder>=0)||sortOrder>99){
+                Logger.error("Cannot create a team with a null uniqueName or with a total length greater than 16. Consider than sortOrder takes up 2 characters.", TeamAPI.class.getName());
                 return null;
             }
-            return new Team(uniqueName, displayName, sortOrder, prefix, suffix, color,
-                    nameTagVisibility, collisions, friendlyFire, seeInvisibleFriends, entries);
+            return new Team(uniqueName, displayName, sortOrder, prefix, suffix, color, nameTagVisibility, collisions, entries);
         }
     }
 

@@ -1,25 +1,73 @@
 package ch.luca008.SpigotApi.Api;
 
 import ch.luca008.SpigotApi.Packets.EntityPackets;
+import ch.luca008.SpigotApi.Packets.PacketsUtils;
 import ch.luca008.SpigotApi.SpigotApi;
+import ch.luca008.SpigotApi.Utils.Logger;
 import ch.luca008.SpigotApi.Utils.WebRequest;
-import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
-import net.minecraft.network.chat.IChatBaseComponent;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.EntityPlayer;
-import net.minecraft.server.level.WorldServer;
-import net.minecraft.world.level.EnumGamemode;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelDuplexHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.EventLoop;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
-import java.util.Objects;
-import java.util.UUID;
+import javax.annotation.Nullable;
+import java.util.*;
 
-public class NPCApi { //adapter l'api puis tester spawnnpc + handle packet (netty chan)
+public class NPCApi implements Listener {
+
+    public interface OnNPCInteract {
+        void interact(int npcId, Player player, ClickType clickType);
+    }
+
+    private final Map<Integer,OnNPCInteract> callbacks = new HashMap<>();
+
+    @EventHandler
+    public void onPlayerJoinSetNPCCallback(PlayerJoinEvent e)
+    {
+        final Player player = e.getPlayer();
+        PacketsUtils.getPlayerChannel(e.getPlayer()).pipeline().addBefore("packet_handler", "npc_handler",  new ChannelDuplexHandler(){
+            public void channelRead(ChannelHandlerContext channelHandlerContext, Object packet) throws Exception {
+
+                try {
+                    Object[] interaction = EntityPackets.getInteractionFromPacket(packet);
+                    if(interaction != null)
+                    {
+                        int entity = (int)interaction[0];
+                        if(callbacks.containsKey(entity))
+                        {
+                            Bukkit.getScheduler().runTask(SpigotApi.getInstance(), ()->callbacks.get(entity).interact(entity, player, ((String)interaction[1]).equals("ATTACK") ? ClickType.LEFT : ClickType.RIGHT));
+                            return; //do not let parent handler know about this packet as its not a real entity on the server.
+                        }
+                    }
+                } catch(Exception e) {
+                    Logger.error("An error occurred during the handling of a packet. Interaction ignored.", getClass().getName());
+                    e.printStackTrace();
+                }
+
+                super.channelRead(channelHandlerContext, packet);
+            }
+        });
+    }
+
+    @EventHandler
+    public void onPlayerQuitRemNPCCallback(PlayerQuitEvent e)
+    {
+        final Channel channel = PacketsUtils.getPlayerChannel(e.getPlayer());
+        EventLoop loop = channel.eventLoop();
+        loop.submit(() -> {
+            channel.pipeline().remove("npc_handler");
+            return null;
+        });
+    }
 
     public enum Directions {
         OTHER(0, 0, 0), NORTH(228, 180, 0), EAST(-138, -90, 0), WEST(138, 90, 0), SOUTH(0, 0, 0);
@@ -50,41 +98,52 @@ public class NPCApi { //adapter l'api puis tester spawnnpc + handle packet (nett
         return new Property("textures", value, signature);
     }
 
-    public EntityPlayer createEntity(World world, String name, Property skin)
+    public void addInteractHandler(NPC npc, OnNPCInteract handler)
     {
-        GameProfile profile = new GameProfile(UUID.randomUUID(), name);
-        if(skin != null){
-            profile.getProperties().put("textures", skin);
+        if(callbacks.containsKey(npc.id))
+        {
+            Logger.error("NPC " + npc.name + " (id=" + npc.id + ", uuid=" + npc.uuid + ") already got an Interact Handler. Please remove the old one before adding this one", getClass().getName());
+            return;
         }
-        MinecraftServer server = (net.minecraft.server.MinecraftServer)ReflectionApi.invoke(ReflectionApi.getOBCClass(null,"CraftServer"), Bukkit.getServer(), "getServer", new Class<?>[0]);
-        WorldServer _world = (net.minecraft.server.level.WorldServer)ReflectionApi.invoke(ReflectionApi.getOBCClass(null,"CraftWorld"), world, "getHandle",new Class<?>[0]);
-        EntityPlayer ep = new EntityPlayer(server, _world, profile);
-        ep.listName = IChatBaseComponent.a(name);
-        ep.f = 1;
-        ep.d.a(EnumGamemode.b);
-        return ep;
+        callbacks.put(npc.id, handler);
+    }
+
+    public void removeInteractHandler(NPC npc)
+    {
+        removeInteractHandler(npc.id);
+    }
+
+    public void removeInteractHandler(int id)
+    {
+        callbacks.remove(id);
     }
 
     public static class NPC {
 
         private static final MainApi.SpigotPlayer api = SpigotApi.getMainApi().players();
-        public final EntityPlayer entity;
-        public final UUID uuid;
-        public final int bukkitId;
-        public final String name;
+
+        private final int id;
+        private final UUID uuid;
+        private final String name;
+        private final Property textures;
         private Location position;
         private Directions direction;
 
-        public NPC(EntityPlayer entity, Location position, Directions direction, boolean spawn){
-            this.entity = entity;
-            this.uuid = entity.fM().getId();
-            this.name = entity.fM().getName();
-            this.bukkitId = entity.getBukkitEntity().getEntityId();
+        public NPC(@Nullable UUID uuid, String name, @Nullable Property textures, Location position, Directions direction, boolean spawn){
+            this.id = EntityPackets.nextId();
+            this.uuid = uuid == null ? UUID.randomUUID() : uuid;
+            this.name = name;
+            this.textures = textures;
             this.position = position;
             this.direction = direction;
             if(spawn){
                 spawn();
             }
+        }
+
+        public int getId()
+        {
+            return this.id;
         }
 
         public Location getLocation(){
@@ -107,12 +166,12 @@ public class NPCApi { //adapter l'api puis tester spawnnpc + handle packet (nett
 
         public void spawn(Player player){
             api.sendPackets(player, createPackets());
-            Bukkit.getScheduler().runTaskLater(SpigotApi.getInstance(), ()-> api.sendPacket(player, EntityPackets.removeEntity(this.entity)),10L);
+            Bukkit.getScheduler().runTaskLater(SpigotApi.getInstance(), ()-> api.sendPackets(player, EntityPackets.removeEntity(this.uuid)),10L);
         }
 
         public void spawn(){
             api.sendPackets(Bukkit.getOnlinePlayers(), createPackets());
-            Bukkit.getScheduler().runTaskLater(SpigotApi.getInstance(), ()-> api.sendPacket(Bukkit.getOnlinePlayers(), EntityPackets.removeEntity(this.entity)),10L);
+            Bukkit.getScheduler().runTaskLater(SpigotApi.getInstance(), ()-> api.sendPackets(Bukkit.getOnlinePlayers(), EntityPackets.removeEntity(this.uuid)),10L);
         }
 
         public void despawn(Player player){
@@ -133,34 +192,33 @@ public class NPCApi { //adapter l'api puis tester spawnnpc + handle packet (nett
             spawn();
         }
 
-        protected Packet<?>[] removePackets(){
-            return new Packet<?>[]{
-                EntityPackets.destroyEntity(this.entity),
-                EntityPackets.removeEntity(this.entity)
-            };
+        protected Object[] removePackets(){
+            return Arrays.stream(new Object[][]{
+                    EntityPackets.destroyEntity(this.id),
+                    EntityPackets.removeEntity(this.uuid)
+            }).flatMap(Arrays::stream).toArray();
         }
 
-        protected Packet<?>[] createPackets(){
+        protected Object[] createPackets(){
             int yaw = this.direction == Directions.OTHER ? (int)this.position.getYaw() : this.direction.getBodyYaw();
             int pitch = this.direction == Directions.OTHER ? (int)this.position.getPitch() : this.direction.getPitch();
-            return new Packet<?>[]{
-              EntityPackets.addEntity(this.entity),
-              EntityPackets.spawnEntity(this.entity, this.position, yaw, pitch),
-              EntityPackets.headRotation(this.entity, this.direction.getHeadYaw()),
-              EntityPackets.updateSkin(this.entity, (byte)0x7F)
-            };
+            return Arrays.stream(new Object[][]{
+                    EntityPackets.addEntity(this.name, this.uuid, this.textures, false, -1, null),
+                    EntityPackets.spawnEntity(this.id, this.uuid, this.position, yaw, pitch, this.direction.getHeadYaw()),
+                    EntityPackets.updateSkin(this.id)
+            }).flatMap(Arrays::stream).toArray();
         }
 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (!(o instanceof NPC npc)) return false;
-            return bukkitId == npc.bukkitId && uuid.equals(npc.uuid) && name.equals(npc.name);
+            return id == npc.id && uuid.equals(npc.uuid) && name.equals(npc.name);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(uuid, bukkitId, name);
+            return Objects.hash(uuid, id, name);
         }
     }
 

@@ -46,6 +46,7 @@ public class PromptApi implements Listener {
             return false;
         }
 
+        //ne pas utiliser le sniffer fourni par défaut
         MainApi.PlayerSniffer sniffer = SpigotApi.getMainApi().players().handlePacket(player, ((packet, cancellable) -> {
             if(packet instanceof PacketPlayInUpdateSign sign){
 

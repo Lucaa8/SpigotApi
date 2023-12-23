@@ -1,13 +1,10 @@
 package ch.luca008.SpigotApi.Packets;
 
 import ch.luca008.SpigotApi.Api.ReflectionApi;
-import ch.luca008.SpigotApi.Api.ReflectionApi.*;
-import net.minecraft.EnumChatFormat;
-import net.minecraft.network.chat.IChatBaseComponent;
-import net.minecraft.network.protocol.game.PacketPlayOutScoreboardTeam;
-import net.minecraft.world.scores.Scoreboard;
-import net.minecraft.world.scores.ScoreboardTeamBase.*;
-import org.bukkit.entity.Player;
+import ch.luca008.SpigotApi.Api.ReflectionApi.ClassMapping;
+import ch.luca008.SpigotApi.Api.ReflectionApi.ObjectMapping;
+import ch.luca008.SpigotApi.Api.ReflectionApi.Version;
+import ch.luca008.SpigotApi.Utils.Logger;
 
 import java.util.*;
 
@@ -77,84 +74,49 @@ public class TeamsPackets
         }
     }
 
-    public static void attemptTeam(Player p)
+    private static Object parametersObject(String displayName, String prefix, String suffix, NameTagVisibility nameTagVisibility, Collisions teamPush, PacketsUtils.ChatColor teamColor)
     {
-
-        Mode create = Mode.CREATE;
-        ObjectMapping packet_create_params = mappings.get(TEAM_PACKET_PARAMETERS).unsafe_newInstance();
-        packet_create_params
-                .set("displayName", PacketsUtils.getChatComponent("§aTestTeam"))
-                .set("playerPrefix", PacketsUtils.getChatComponent("§cAdmin | "))
-                .set("playerSuffix", PacketsUtils.getChatComponent(""))
-                .set("nametagVisibility", NameTagVisibility.ALWAYS.mcName)
-                .set("collisionRule", Collisions.NEVER)
-                .set("color", "")
-                .set("options", 0);
-
+        return mappings.get(TEAM_PACKET_PARAMETERS).unsafe_newInstance()
+                .set("displayName", PacketsUtils.getChatComponent(displayName))
+                .set("playerPrefix", PacketsUtils.getChatComponent(prefix))
+                .set("playerSuffix", PacketsUtils.getChatComponent(suffix))
+                .set("nametagVisibility", nameTagVisibility.mcName) //ok on client
+                .set("collisionRule", teamPush.mcName) //not ok PUSH_OWN_TEAM pushes everyone bc the server thinks no one has any team so "default team"
+                .set("color", teamColor.getEnumValue())
+                .set("options", 0) //not ok but dont care
+                .packet();
     }
 
-    private static PacketPlayOutScoreboardTeam packet(String uniqueName,
-                                                      Mode mode,
-                                                      String displayName,
-                                                      boolean friendlyFire,
-                                                      boolean seeInvisibleFriendly,
-                                                      EnumNameTagVisibility nameTagVisibility,
-                                                      EnumTeamPush teamPush,
-                                                      EnumChatFormat teamColor,
-                                                      String prefix,
-                                                      String suffix,
-                                                      String...entitiesArray)
+    private static Object[] packet(String uniqueName, Mode mode, Optional<Object> parameters, String...entitiesArray)
     {
-        net.minecraft.world.scores.ScoreboardTeam team = new net.minecraft.world.scores.ScoreboardTeam(new Scoreboard(), uniqueName);
+        ObjectMapping packet = mappings.get(TEAM_PACKET).unsafe_newInstance();
         if(mode==Mode.DELETE) {
-            return PacketPlayOutScoreboardTeam.a(team);
+            return new Object[]{packet.set("method", Mode.DELETE.mode).set("name", uniqueName).packet()};
         } else {
             Collection<String> entities = mode != Mode.UPDATE ? new ArrayList<>(Arrays.asList(entitiesArray)) : Collections.emptyList();
-            Optional<Object> needsTeam = Optional.empty();
-            if (mode == Mode.CREATE || mode == Mode.UPDATE) {
-                PacketPlayOutScoreboardTeam.b packetTeamB = new PacketPlayOutScoreboardTeam.b(team);
-                ReflectionApi.setField(packetTeamB, "a", IChatBaseComponent.b(displayName));
-                ReflectionApi.setField(packetTeamB, "b", IChatBaseComponent.b(prefix));
-                ReflectionApi.setField(packetTeamB, "c", IChatBaseComponent.b(suffix));
-                ReflectionApi.setField(packetTeamB, "d", nameTagVisibility.e);
-                ReflectionApi.setField(packetTeamB, "e", teamPush.e);
-                ReflectionApi.setField(packetTeamB, "f", teamColor);
-                int g = 0;
-                if (friendlyFire)
-                    g |= 0x1;
-                if (seeInvisibleFriendly)
-                    g |= 0x2;
-                ReflectionApi.setField(packetTeamB, "g", g);
-                needsTeam = Optional.of(packetTeamB);
-            }
-            return (PacketPlayOutScoreboardTeam) ReflectionApi.newInstance(PacketPlayOutScoreboardTeam.class, new Class<?>[]{String.class, int.class, Optional.class, Collection.class}, uniqueName, mode.mode, needsTeam, entities);
+            return new Object[]{packet.set("method", mode.mode).set("name", uniqueName).set("parameters", parameters).set("players", entities).packet()};
         }
     }
 
-    public static PacketPlayOutScoreboardTeam createOrUpdateTeam(String uniqueName,
-                                                                 Mode mode,
-                                                                 String displayName,
-                                                                 boolean friendlyFire,
-                                                                 boolean seeInvisibleFriendly,
-                                                                 EnumNameTagVisibility nameTagVisibility,
-                                                                 EnumTeamPush teamPush,
-                                                                 EnumChatFormat teamColor,
-                                                                 String prefix,
-                                                                 String suffix,
-                                                                 String...entities)
+    public static Object[] createOrUpdateTeam(String uniqueName, Mode mode, String displayName, NameTagVisibility nameTagVisibility, Collisions teamPush, PacketsUtils.ChatColor teamColor, String prefix, String suffix, String...entities)
     {
-        return packet(uniqueName, (mode == Mode.CREATE || mode == Mode.UPDATE) ? mode : Mode.CREATE, displayName, friendlyFire, seeInvisibleFriendly, nameTagVisibility, teamPush, teamColor, prefix, suffix, entities);
+        if (mode != Mode.CREATE && mode != Mode.UPDATE) {
+            Logger.error("Cannot use another mode than CREATE or UPDATE in the createOrUpdateTeam method.", TeamsPackets.class.getName());
+            return null;
+        }
+        return packet(uniqueName, mode, Optional.of(parametersObject(displayName, prefix, suffix, nameTagVisibility, teamPush, teamColor)), entities);
     }
 
-    public static PacketPlayOutScoreboardTeam deleteTeam(String uniqueName)
+    public static Object[] deleteTeam(String uniqueName)
     {
-        return packet(uniqueName, Mode.DELETE, "", false, false, null, null, null, "", "");
+        return packet(uniqueName, Mode.DELETE, Optional.empty());
     }
 
-    public static PacketPlayOutScoreboardTeam updateEntities(String uniqueName, Mode mode, String...entities)
+    public static Object[] updateEntities(String uniqueName, Mode mode, String...entities)
     {
         if(mode == Mode.ADD_ENTITY || mode == Mode.REMOVE_ENTITY)
-            return packet(uniqueName, mode, "", false, false, null, null, null, "", "", entities);
+            return packet(uniqueName, mode, Optional.empty(), entities);
+        Logger.error("Cannot use another mode than ADD_ENTITY or REMOVE_ENTITY in the updateEntities method.", TeamsPackets.class.getName());
         return null;
     }
 

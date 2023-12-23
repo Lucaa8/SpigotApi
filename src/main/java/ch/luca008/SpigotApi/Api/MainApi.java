@@ -2,16 +2,15 @@ package ch.luca008.SpigotApi.Api;
 
 import ch.luca008.SpigotApi.Packets.PacketsUtils;
 import ch.luca008.SpigotApi.Packets.TeamsPackets;
+import ch.luca008.SpigotApi.Packets.TeamsPackets.Collisions;
 import ch.luca008.SpigotApi.Packets.TeamsPackets.Mode;
+import ch.luca008.SpigotApi.Packets.TeamsPackets.NameTagVisibility;
 import ch.luca008.SpigotApi.SpigotApi;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.EventLoop;
-import net.minecraft.EnumChatFormat;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.world.scores.ScoreboardTeamBase.EnumNameTagVisibility;
-import net.minecraft.world.scores.ScoreboardTeamBase.EnumTeamPush;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
@@ -63,33 +62,29 @@ public class MainApi {
              * @param uniqueName16Len Maximum length of 16. This name can sort teams in the tab. "00admin","01moderator", etc... Need to be unique
              * @param createOrUpdate The packet is the same to create or update a team, but the client need to knows which action you send
              * @param displayName A displayname (not visible) but can exceed 16 length. Give more detail if you can't put all in the unique name
-             * @param allowFriendlyFire true will allow players in the same team to fight each oder.
-             * @param seeInvisibleFriendly true will allow players in the same team to see them each oder even if someone is invisible
              * @param nameTagVisibility If the prefix/suffix and color is visible by other teams, own team, etc..
              * @param collisions 1.9+ collisions between players in the same team, enemies teams, etc...
              * @param color pseudo color (1.16+ need to specify the reel color. cannot put "prefix §6" to have a gold pseudo)
              * @param prefix prefix of the team
              * @param suffix suffix of the team
              * @param entitiesIntoTeam only needed when a new team is created. The list of pseudo(players) or uuid(entities) will be added to the team. Can be empty for none
+             * @return In most cases only 1 object with the corresponding packet, but it's a security if in some later version we need 2 or more packets to do this action.
              */
-            public Packet<?> getCreateOrUpdateTeamPacket(String uniqueName16Len, Mode createOrUpdate, String displayName, boolean allowFriendlyFire, boolean seeInvisibleFriendly,
-                                                      EnumNameTagVisibility nameTagVisibility, EnumTeamPush collisions, EnumChatFormat color,
-                                                      String prefix, String suffix, String...entitiesIntoTeam){
-                if(createOrUpdate==Mode.CREATE||createOrUpdate==Mode.UPDATE){
-                    return TeamsPackets.createOrUpdateTeam(uniqueName16Len, createOrUpdate, displayName, allowFriendlyFire, seeInvisibleFriendly, nameTagVisibility, collisions, color, prefix, suffix, entitiesIntoTeam);
-                }
-                return null;
+            public Object[] getCreateOrUpdateTeamPacket(String uniqueName16Len, Mode createOrUpdate, String displayName,
+                                                        NameTagVisibility nameTagVisibility, Collisions collisions, PacketsUtils.ChatColor color,
+                                                        String prefix, String suffix, String...entitiesIntoTeam){
+                return TeamsPackets.createOrUpdateTeam(uniqueName16Len, createOrUpdate, displayName, nameTagVisibility, collisions, color, prefix, suffix, entitiesIntoTeam);
             }
 
-            public Packet<?> getDeleteTeamPacket(String uniqueName16Len){
+            public Object[] getDeleteTeamPacket(String uniqueName16Len){
                 return TeamsPackets.deleteTeam(uniqueName16Len);
             }
 
-            public Packet<?> getAddEntityTeamPacket(String uniqueName16Len, String...entitiesToAdd){
+            public Object[] getAddEntityTeamPacket(String uniqueName16Len, String...entitiesToAdd){
                 return TeamsPackets.updateEntities(uniqueName16Len, Mode.ADD_ENTITY, entitiesToAdd);
             }
 
-            public Packet<?> getRemoveEntityTeamPacket(String uniqueName16Len, String...entitiesToRemove){
+            public Object[] getRemoveEntityTeamPacket(String uniqueName16Len, String...entitiesToRemove){
                 return TeamsPackets.updateEntities(uniqueName16Len, Mode.REMOVE_ENTITY, entitiesToRemove);
             }
         }

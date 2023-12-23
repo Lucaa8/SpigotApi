@@ -18,7 +18,7 @@ public class PacketsUtils {
 
     private static final Class<?> CRAFT_PLAYER;
     private static final Class<?> ENUM_GAMEMODE;
-    //ajouter enumchatcolor
+    private static final String CHAT_COLOR = "EnumChatFormat";
     private static final String CHAT_COMPONENT = "ChatComponent";
     private static final String ENTITY_PLAYER = "EntityPlayer";
     private static final Field network_manager;
@@ -33,6 +33,7 @@ public class PacketsUtils {
         ENUM_GAMEMODE = ReflectionApi.getNMSClass("world.level", "EnumGamemode");
         mappings.put(CHAT_COMPONENT, new ClassMapping(ReflectionApi.getNMSClass("network.chat", "IChatBaseComponent"), new HashMap<>(), new HashMap<>(){{ put("literal", "a"); }}));
         mappings.put(ENTITY_PLAYER, new ClassMapping(ReflectionApi.getNMSClass("server.level", "EntityPlayer"), new HashMap<>(){{ put("connection", "c"); }}, new HashMap<>()));
+        mappings.put(CHAT_COLOR, new ClassMapping(ReflectionApi.getNMSClass("", "EnumChatFormat"), new HashMap<>(), new HashMap<>(){{ put("byName", "b"); }}));
 
         Class<?> playerConn;
         String fieldConn;
@@ -81,7 +82,15 @@ public class PacketsUtils {
 
         BLACK, DARK_BLUE, DARK_GREEN, DARK_AQUA, DARK_RED, DARK_PURPLE, GOLD, GRAY, DARK_GRAY, BLUE, GREEN, AQUA, RED, LIGHT_PURPLE, YELLOW, WHITE, OBFUSCATED, BOLD, STRIKETHROUGH, UNDERLINE, ITALIC, RESET;
 
-
+        private final Enum<?> mcEnumChatColor;
+        ChatColor()
+        {
+            mcEnumChatColor = (Enum<?>) mappings.get(CHAT_COLOR).invoke(null, "byName", new Class[]{String.class}, this.name());
+        }
+        public Enum<?> getEnumValue()
+        {
+            return mcEnumChatColor;
+        }
 
     }
 
