@@ -39,7 +39,6 @@ public class SpigotApi extends JavaPlugin implements Listener {
         promptApi = new PromptApi();
 
         Bukkit.getServer().getPluginManager().registerEvents(teamApi, this);
-        Bukkit.getServer().getPluginManager().registerEvents(promptApi, this);
         Bukkit.getServer().getPluginManager().registerEvents(npcApi, this);
 
         //TODO: remove
@@ -50,8 +49,7 @@ public class SpigotApi extends JavaPlugin implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent e)
     {
-        //TODO: prompt and nbttags apis, then remove implements listener
-        //TODO: check skull nbt
+        //TODO: keep it to test skull nbt and then remove implements listener
     }
 
     public void onDisable(){

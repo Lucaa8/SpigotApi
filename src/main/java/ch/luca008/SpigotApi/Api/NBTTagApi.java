@@ -1,133 +1,179 @@
 package ch.luca008.SpigotApi.Api;
 
+import ch.luca008.SpigotApi.Api.ReflectionApi.ClassMapping;
+import ch.luca008.SpigotApi.Api.ReflectionApi.Version;
 import ch.luca008.SpigotApi.SpigotApi;
-import net.minecraft.nbt.*;
-import net.minecraft.world.item.ItemStack;
+import org.apache.commons.lang.ClassUtils;
+import org.bukkit.inventory.ItemStack;
+
+import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
 
 public class NBTTagApi {
 
-    public NBTItem getNBT(org.bukkit.inventory.ItemStack item) {
+    private static final Class<?> OBC_ITEM_STACK;
+    private static final String NMS_ITEM_STACK = "NMSItemStack";
+    private static final String NBT_COMPOUND = "NBTTagCompound";
+    private static final String NBT_BASE = "NBTBase";
+
+    private static final Map<Class<?>, Class<?>> NBT_TYPES = new HashMap<>();
+
+    private static final Map<String, ClassMapping> mappings = new HashMap<>();
+
+    static {
+
+        Version v = ReflectionApi.SERVER_VERSION;
+
+        OBC_ITEM_STACK = ReflectionApi.getOBCClass("inventory", "CraftItemStack");
+
+        mappings.put(NMS_ITEM_STACK, new ClassMapping(ReflectionApi.getNMSClass("world.item", "ItemStack"), new HashMap<>(), new HashMap<>(){{ put("getOrCreateTag", "w"); put("setTag", "c"); put("removeTagKey", "c"); put("hasTag", "u"); }}));
+        mappings.put(NBT_COMPOUND, new ClassMapping(ReflectionApi.getNMSClass("nbt", "NBTTagCompound"), new HashMap<>(){{ put("tags", "x"); }}, new HashMap<>(){{ put("put", "a"); put("get", "c"); }}));
+
+        String getAsString = "m_"; //1.20.1
+        switch (v)
+        {
+            case MC_1_20_2 -> getAsString = "r_";
+            case MC_1_20_3 -> getAsString = "t_"; //1.20.4 same
+        }
+
+        String finalGetAsString = getAsString;
+        mappings.put(NBT_BASE, new ClassMapping(ReflectionApi.getNMSClass("nbt", "NBTBase"), new HashMap<>(), new HashMap<>(){{ put("getAsString" , finalGetAsString); }}));
+
+        NBT_TYPES.put(String.class, ReflectionApi.getNMSClass("nbt", "NBTTagString"));
+        NBT_TYPES.put(int.class, ReflectionApi.getNMSClass("nbt", "NBTTagInt"));
+        NBT_TYPES.put(float.class, ReflectionApi.getNMSClass("nbt", "NBTTagFloat"));
+        NBT_TYPES.put(double.class, ReflectionApi.getNMSClass("nbt", "NBTTagDouble"));
+        NBT_TYPES.put(short.class, ReflectionApi.getNMSClass("nbt", "NBTTagShort"));
+        NBT_TYPES.put(long.class, ReflectionApi.getNMSClass("nbt", "NBTTagLong"));
+        Class<?> byte_type = ReflectionApi.getNMSClass("nbt", "NBTTagByte");
+        NBT_TYPES.put(byte.class, byte_type);
+        NBT_TYPES.put(boolean.class, byte_type);
+
+
+    }
+
+    public NBTItem getNBT(ItemStack item) {
         return new NBTItem(item);
     }
 
-    public ItemStack getNMSItem(org.bukkit.inventory.ItemStack itemstack) {
-        Class<?> CraftItemStack = ReflectionApi.getOBCClass("inventory", "CraftItemStack");
-        return (ItemStack)ReflectionApi.invoke(CraftItemStack, CraftItemStack, "asNMSCopy", new Class[]{org.bukkit.inventory.ItemStack.class}, itemstack);
+    public Object getNMSItem(ItemStack bukkitItem) {
+        return ReflectionApi.invoke(OBC_ITEM_STACK, null, "asNMSCopy", new Class[]{bukkitItem.getClass()}, bukkitItem);
     }
 
-    public org.bukkit.inventory.ItemStack getBukkitItem(ItemStack nmsCopy) {
-        //inconsistency between spigot-api and paper patched jar. The spigot api's nms version doesn't know about ItemStack#asBukkitCopy but the final paper jar does.
-        return (org.bukkit.inventory.ItemStack) ReflectionApi.invoke(nmsCopy.getClass(), nmsCopy, "asBukkitCopy", new Class[0]);
+    public ItemStack getBukkitItem(Object nmsItem) {
+        return (ItemStack) ReflectionApi.invoke(OBC_ITEM_STACK, null, "asBukkitCopy", new Class[]{nmsItem.getClass()}, nmsItem);
     }
 
-    private NBTBase fromObjectToNBTBase(Object o) {
-        //impossible to do switch case with object classes bruh
-        if(o instanceof String) {
-            return NBTTagString.a((String) o);
-        }
-        else if(o instanceof Integer) {
-            return NBTTagInt.a((int)o);
-        }
-        else if(o instanceof Float) {
-            return NBTTagFloat.a((float)o);
-        }
-        else if(o instanceof Double) {
-            return NBTTagDouble.a((double)o);
-        }
-        else if(o instanceof Short) {
-            return NBTTagShort.a((short)o);
-        }
-        else if(o instanceof Long) {
-            return NBTTagLong.a((long)o);
-        }
-        else if(o instanceof Byte) {
-            return NBTTagByte.a((byte)o);
-        }
-        else if(o instanceof Boolean) {
-            return NBTTagByte.a((boolean)o);
-        }
+    private Object fromObjectToNBTBase(Object o) {
+
+        Class<?> objType = o.getClass();
+        Class<?> toPrimitive = ClassUtils.wrapperToPrimitive(objType); //String returns null because he does not have a primitive version
+
+        if(toPrimitive != null)
+            objType = toPrimitive;
+
+        if(!NBT_TYPES.containsKey(objType))
+            return null;
+
+        return ReflectionApi.invoke(NBT_TYPES.get(objType), null, "a", new Class[]{objType}, o);
+
+    }
+
+    private boolean hasTag(Object nmsItem) {
+        return (boolean) mappings.get(NMS_ITEM_STACK).invoke(nmsItem, "hasTag");
+    }
+
+    private Object getTagCompound(Object nmsItem) {
+        return mappings.get(NMS_ITEM_STACK).invoke(nmsItem, "getOrCreateTag");
+    }
+
+    private Map<String, Object> getTags(Object nmsItem)
+    {
+        return (Map<String, Object>) mappings.get(NBT_COMPOUND).getFieldValue("tags", getTagCompound(nmsItem));
+    }
+
+    private boolean containsTag(Object nmsItem, String tagName) {
+        return getTag(nmsItem, tagName) != null;
+    }
+
+    @Nullable
+    private Object getTag(Object nmsItem, String tagName) {
+        Object tagCompound = getTagCompound(nmsItem);
+        return mappings.get(NBT_COMPOUND).invoke(tagCompound, "get", new Class[]{String.class}, tagName);
+    }
+
+    @Nullable
+    private String getStringTag(Object nmsItem, String tagName) {
+        Object nbtTag = getTag(nmsItem, tagName);
+        if(nbtTag != null)
+            return (String) mappings.get(NBT_BASE).invoke(nbtTag, "getAsString");
         return null;
     }
 
-    private boolean hasTag(ItemStack i) {
-        return i.u();
-    }
-
-    private NBTTagCompound getTags(ItemStack i) {
-        return i.w();
-    }
-
-    private boolean containsTag(ItemStack i, String tagname) {
-        return getTags(i).c(tagname)!=null;
-    }
-
-    private NBTBase getTag(ItemStack i, String tagname) {
-        return getTags(i).c(tagname);
-    }
-
-    private String getStringTag(ItemStack i, String tagname) {
-        return getTag(i, tagname).m_();
-    }
-
-    private void setTag(ItemStack i, String tagname, Object value) {
-        NBTTagCompound tags = getTags(i);
+    private void setTag(Object nmsItem, String tagName, Object value) {
         value = fromObjectToNBTBase(value);
         if(value != null)
         {
-            tags.a(tagname, (NBTBase) value);
-            i.c(tags);
+            Object tagCompound = getTagCompound(nmsItem);
+            mappings.get(NBT_COMPOUND).invoke(tagCompound, "put", new Class[]{String.class, mappings.get(NBT_BASE).getMappedClass()}, tagName, value);
+            mappings.get(NMS_ITEM_STACK).invoke(nmsItem, "setTag", new Class[]{tagCompound.getClass()}, tagCompound);
         }
     }
 
-    private void removeTag(ItemStack i, String tagname) {
-        i.c(tagname);
+    private void removeTag(Object nmsItem, String tagName) {
+        mappings.get(NMS_ITEM_STACK).invoke(nmsItem, "removeTagKey", new Class[]{String.class}, tagName);
     }
 
     public static class NBTItem {
         private final NBTTagApi api;
-        private final ItemStack item;
+        private final Object nmsItem;
 
-        private NBTItem(org.bukkit.inventory.ItemStack item) {
+        private NBTItem(ItemStack item) {
             this.api = SpigotApi.getNBTTagApi();
-            this.item = api.getNMSItem(item);
+            this.nmsItem = api.getNMSItem(item);
         }
 
         public NBTItem setTag(String tag, Object value) {
-            this.api.setTag(this.item, tag, value);
+            this.api.setTag(this.nmsItem, tag, value);
             return this;
         }
 
         public NBTItem removeTag(String tag) {
-            this.api.removeTag(this.item, tag);
+            this.api.removeTag(this.nmsItem, tag);
             return this;
         }
 
-        public NBTBase getTag(String tag) {
-            return this.api.getTag(this.item, tag);
+        public Object getTag(String tag) {
+            return this.api.getTag(this.nmsItem, tag);
         }
 
         public String getString(String tag) {
-            return this.api.getStringTag(this.item, tag);
+            return this.api.getStringTag(this.nmsItem, tag);
         }
 
-        public NBTTagCompound getTags() {
-            return this.api.getTags(this.item);
+        public Map<String, Object> getTags() {
+            return new HashMap<>(this.api.getTags(this.nmsItem));
         }
 
         public boolean hasTag(String tag) {
-            return this.api.containsTag(this.item, tag);
+            return this.api.containsTag(this.nmsItem, tag);
         }
 
         public boolean hasTags() {
-            return this.api.hasTag(this.item);
+            return this.api.hasTag(this.nmsItem);
         }
 
-        public ItemStack getNMSItem() {
-            return this.item;
+        public Object getTagCompound() {
+            return this.api.getTagCompound(this.nmsItem);
         }
 
-        public org.bukkit.inventory.ItemStack getBukkitItem() {
-            return api.getBukkitItem(this.item);
+        public Object getNMSItem() {
+            return this.nmsItem;
+        }
+
+        public ItemStack getBukkitItem() {
+            return api.getBukkitItem(this.nmsItem);
         }
     }
 

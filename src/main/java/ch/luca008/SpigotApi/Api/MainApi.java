@@ -8,21 +8,22 @@ import ch.luca008.SpigotApi.Packets.TeamsPackets;
 import ch.luca008.SpigotApi.Packets.TeamsPackets.Collisions;
 import ch.luca008.SpigotApi.Packets.TeamsPackets.NameTagVisibility;
 import ch.luca008.SpigotApi.SpigotApi;
-import com.google.protobuf.Api;
+import ch.luca008.SpigotApi.Utils.Logger;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.EventLoop;
-import net.minecraft.network.protocol.Packet;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.server.PluginDisableEvent;
 
 import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MainApi {
     private final SpigotPlayer players;
@@ -30,6 +31,7 @@ public class MainApi {
 
     public MainApi(){
         this.players = new SpigotPlayer();
+        Bukkit.getPluginManager().registerEvents(this.players, SpigotApi.getInstance());
         this.packets = new SpigotPackets();
     }
 
@@ -151,10 +153,41 @@ public class MainApi {
         }
     }
 
-    public static class SpigotPlayer{
+    public static class SpigotPlayer implements Listener {
 
-        public PlayerSniffer handlePacket(Player player, PacketReceived callback){
-            return new PlayerSniffer(player, callback);
+        private final Map<Player, PlayerSniffer> sniffers = new HashMap<>();
+
+        public void startHandling(Player player, String handler, PacketReceived callback){
+            if(!sniffers.containsKey(player))
+                sniffers.put(player, new PlayerSniffer(player));
+            sniffers.get(player).addCallback(handler, callback);
+        }
+
+        public void stopHandling(Player player, String handler)
+        {
+            if(!sniffers.containsKey(player))
+                return;
+            sniffers.get(player).removeCallback(handler);
+        }
+
+        @EventHandler
+        public void onQuitRemoveSniffer(PlayerQuitEvent e)
+        {
+            PlayerSniffer handler = sniffers.remove(e.getPlayer());
+            if(handler!=null)
+                handler.unregister();
+        }
+
+        @EventHandler
+        public void OnPluginUnload(PluginDisableEvent e) {
+            if(e.getPlugin().equals(SpigotApi.getInstance())) {
+                for(PlayerSniffer p : sniffers.values())
+                {
+                    p.unregister();
+                }
+                sniffers.clear();
+                Logger.warn("All current logged players will have their packet handler removed. If it's a reload it can cause some issues with the NPC interactions, prompt api or other plugins. Please consider restarting the server", PlayerSniffer.class.getName());
+            }
         }
 
     }
@@ -165,20 +198,43 @@ public class MainApi {
 
     }
 
-    public static class PlayerSniffer implements Listener {
+    public static class PlayerSniffer {
 
         private final Player player;
-        private final PacketReceived callback;
+        private final Map<String, PacketReceived> callbacks = new HashMap<>();
+        private boolean isListening = false;
 
-        private PlayerSniffer(Player player, PacketReceived callback){
+        private PlayerSniffer(Player player){
             this.player = player;
-            this.callback = callback;
-            register();
+        }
+
+        public void addCallback(String name, PacketReceived callback)
+        {
+            if(callbacks.containsKey(name))
+            {
+                Logger.error("The player " + player + " already have a registered callback with the name " + name + ". Maybe consider removing the old one or to add your plugin prefix in front of the name to avoid conflicts.", PlayerSniffer.class.getName());
+                return;
+            }
+            callbacks.put(name, callback);
+            if(!isListening)
+            {
+                register();
+            }
+        }
+
+        public void removeCallback(String name)
+        {
+            callbacks.remove(name);
+            if(callbacks.size() == 0)
+            {
+                unregister();
+            }
         }
 
         private void register(){
 
-            Bukkit.getServer().getPluginManager().registerEvents(this, SpigotApi.getInstance());
+            if(isListening)
+                return;
 
             PacketsUtils.getPlayerChannel(player).pipeline().addBefore("packet_handler", this.player.getName(), new ChannelDuplexHandler(){
                 public void channelRead(ChannelHandlerContext channelHandlerContext, Object packet) throws Exception {
@@ -195,9 +251,12 @@ public class MainApi {
                         }
                     };
 
-                    if(packet instanceof Packet<?> p)
+                    if(ApiPacket.mcPacket.isAssignableFrom(packet.getClass()))
                     {
-                        PlayerSniffer.this.callback.receive(p, c);
+                        for(PacketReceived callback : callbacks.values())
+                        {
+                            callback.receive(packet, c);
+                        }
                     }
 
                     if(!c.isCancelled()){
@@ -206,11 +265,14 @@ public class MainApi {
                 }
             });
 
+            isListening = true;
+
         }
 
         public void unregister(){
 
-            HandlerList.unregisterAll(this);
+            if(!isListening)
+                return;
 
             final Channel channel = PacketsUtils.getPlayerChannel(player);
             EventLoop loop = channel.eventLoop();
@@ -219,14 +281,7 @@ public class MainApi {
                 return null;
             });
 
-        }
-
-        @EventHandler
-        public void onQuitUnregister(PlayerQuitEvent e){
-
-            if(e.getPlayer() == player){
-                unregister();
-            }
+            isListening = false;
 
         }
 

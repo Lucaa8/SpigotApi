@@ -359,7 +359,7 @@ public class Item {
         NBTTagApi api = SpigotApi.getNBTTagApi();
         for(ItemStack item : toItemStacks(amount, p)){
             NBTTagApi.NBTItem nbt = api.getNBT(item);
-            for(String tag : api.getNBT(item).getTags().e()){
+            for(String tag : api.getNBT(item).getTags().keySet()){
                 nbt.removeTag(tag);
             }
             withoutNbtItems[i++] = nbt.getBukkitItem();

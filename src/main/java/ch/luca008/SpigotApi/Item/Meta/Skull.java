@@ -119,9 +119,9 @@ public class Skull implements Meta{
     }
 
     public static ItemStack applySignature(ItemStack item, String encodedURL){
-        net.minecraft.world.item.ItemStack nmsItem = SpigotApi.getNBTTagApi().getNMSItem(item);
+        net.minecraft.world.item.ItemStack nmsItem = (net.minecraft.world.item.ItemStack) SpigotApi.getNBTTagApi().getNMSItem(item);
 
-        NBTTagCompound tags = SpigotApi.getNBTTagApi().getNBT(item).getTags(); //NBTTagCompound "tag"
+        NBTTagCompound tags = (NBTTagCompound) SpigotApi.getNBTTagApi().getNBT(item).getTagCompound(); //NBTTagCompound "tag"
 
         NBTTagIntArray id = new NBTTagIntArray(new int[]{0,0,0,0});
         NBTTagString val = NBTTagString.a(encodedURL);

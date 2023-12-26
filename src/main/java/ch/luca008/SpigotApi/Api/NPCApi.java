@@ -2,15 +2,10 @@ package ch.luca008.SpigotApi.Api;
 
 import ch.luca008.SpigotApi.Packets.ApiPacket;
 import ch.luca008.SpigotApi.Packets.EntityPackets;
-import ch.luca008.SpigotApi.Packets.PacketsUtils;
 import ch.luca008.SpigotApi.SpigotApi;
 import ch.luca008.SpigotApi.Utils.Logger;
 import ch.luca008.SpigotApi.Utils.WebRequest;
 import com.mojang.authlib.properties.Property;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelDuplexHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.EventLoop;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -18,10 +13,12 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 
 public class NPCApi implements Listener {
 
@@ -35,38 +32,22 @@ public class NPCApi implements Listener {
     public void onPlayerJoinSetNPCCallback(PlayerJoinEvent e)
     {
         final Player player = e.getPlayer();
-        PacketsUtils.getPlayerChannel(e.getPlayer()).pipeline().addBefore("packet_handler", "npc_handler",  new ChannelDuplexHandler(){
-            public void channelRead(ChannelHandlerContext channelHandlerContext, Object packet) throws Exception {
-
-                try {
-                    Object[] interaction = EntityPackets.getInteractionFromPacket(packet);
-                    if(interaction != null)
+        SpigotApi.getMainApi().players().startHandling(player, "SpigotApi_NPC", (packet, cancellable) -> {
+            try {
+                Object[] interaction = EntityPackets.getInteractionFromPacket(packet);
+                if(interaction != null)
+                {
+                    int entity = (int)interaction[0];
+                    if(callbacks.containsKey(entity))
                     {
-                        int entity = (int)interaction[0];
-                        if(callbacks.containsKey(entity))
-                        {
-                            Bukkit.getScheduler().runTask(SpigotApi.getInstance(), ()->callbacks.get(entity).interact(entity, player, ((String)interaction[1]).equals("ATTACK") ? ClickType.LEFT : ClickType.RIGHT));
-                            return; //do not let parent handler know about this packet as its not a real entity on the server.
-                        }
+                        Bukkit.getScheduler().runTask(SpigotApi.getInstance(), ()->callbacks.get(entity).interact(entity, player, ((String)interaction[1]).equals("ATTACK") ? ClickType.LEFT : ClickType.RIGHT));
+                        cancellable.setCancelled(true);
                     }
-                } catch(Exception e) {
-                    Logger.error("An error occurred during the handling of a packet. Interaction ignored.", getClass().getName());
-                    e.printStackTrace();
                 }
-
-                super.channelRead(channelHandlerContext, packet);
+            } catch(Exception ex) {
+                Logger.error("An error occurred during the handling of a packet. Interaction ignored.", getClass().getName());
+                ex.printStackTrace();
             }
-        });
-    }
-
-    @EventHandler
-    public void onPlayerQuitRemNPCCallback(PlayerQuitEvent e)
-    {
-        final Channel channel = PacketsUtils.getPlayerChannel(e.getPlayer());
-        EventLoop loop = channel.eventLoop();
-        loop.submit(() -> {
-            channel.pipeline().remove("npc_handler");
-            return null;
         });
     }
 

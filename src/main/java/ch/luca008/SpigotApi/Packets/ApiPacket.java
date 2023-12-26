@@ -11,7 +11,7 @@ import java.util.List;
 
 public class ApiPacket {
 
-    private static final Class<?> mcPacket = ReflectionApi.getNMSClass("network.protocol", "Packet");
+    public static final Class<?> mcPacket = ReflectionApi.getNMSClass("network.protocol", "Packet");
 
     private final List<Object> packets;
 

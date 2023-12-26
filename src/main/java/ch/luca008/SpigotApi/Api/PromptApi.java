@@ -1,25 +1,18 @@
 package ch.luca008.SpigotApi.Api;
 
-import ch.luca008.SpigotApi.Packets.PacketsUtils;
+import ch.luca008.SpigotApi.Packets.SignPackets;
 import ch.luca008.SpigotApi.SpigotApi;
-import net.minecraft.core.BlockPosition;
-import net.minecraft.network.protocol.game.PacketPlayInUpdateSign;
-import net.minecraft.network.protocol.game.PacketPlayOutOpenSignEditor;
 import org.bukkit.Bukkit;
 import org.bukkit.DyeColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.server.PluginDisableEvent;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
-public class PromptApi implements Listener {
+public class PromptApi {
 
     public interface PromptCallback{
         void getInput(boolean isCancelled, String[] asMultipleLines, String asSingleLine);
@@ -28,7 +21,7 @@ public class PromptApi implements Listener {
     public String cancelCmd = "exit";
     public DyeColor promptColor = DyeColor.WHITE;
 
-    private final Map<UUID, MainApi.PlayerSniffer> prompt = new HashMap<>();
+    private final List<UUID> currentPrompts = new ArrayList<>();
 
     /**
      * This method opens a sign to the given player, puts the initial lines given on it, then waits that the player edit it and close it. The given callback will be called with the four lines the player wrote. <p>
@@ -43,39 +36,40 @@ public class PromptApi implements Listener {
 
         final UUID id = player.getUniqueId();
 
-        if(prompt.containsKey(id)){
+        if(currentPrompts.contains(id)){
             return false;
         }
 
-        //ne pas utiliser le sniffer fourni par défaut
-        MainApi.PlayerSniffer sniffer = SpigotApi.getMainApi().players().handlePacket(player, ((packet, cancellable) -> {
-            if(packet instanceof PacketPlayInUpdateSign sign){
+        SpigotApi.getMainApi().players().startHandling(player, "SpigotApi_Prompt", ((packet, cancellable) -> {
 
-                //The server wont read this packet and it'll be discarded
+            if(SignPackets.isUpdateSignPacket(packet)){
+
+                //The server won't read this packet and it'll be discarded
                 cancellable.setCancelled(true);
 
-                //We get the position of the fake sign to update this location and get back the original block before the sign place
-                final BlockPosition blockpos = sign.a();
-                Bukkit.getScheduler().runTask(SpigotApi.getInstance(), ()->new Location(player.getWorld(), blockpos.u(), blockpos.v(), blockpos.w()).getBlock().getState().update());
+                //We get the position and the lines of the fake sign
+                Location blockPos = new Location(null, 0.0, 0.0, 0.0);
+                String[] lines = new String[4];
+                SignPackets.getPacketInInfo(packet, blockPos, lines);
+
+                //We update this location and get back the original block before the sign place
+                Bukkit.getScheduler().runTask(SpigotApi.getInstance(), ()->new Location(player.getWorld(), blockPos.getBlockX(), blockPos.getBlockY(), blockPos.getBlockZ()).getBlock().getState().update());
 
                 //We build a single line from the 4 lines of the sign (may be useful if the player needs to write a sentence)
                 String temp = "";
-                for(String s : sign.d())temp+=s;
+                for(String s : lines)temp+=s;
                 final String line = temp;
 
                 //We notify the caller that the player did finish to edit the sign
-                //Because the packets are received asynchronously we need to resync with bukkit to avoir async errors inside the callback.
-                Bukkit.getScheduler().runTask(SpigotApi.getInstance(), ()->callback.getInput(sign.d()[0].equalsIgnoreCase(cancelCmd), sign.d(), line));
+                //Because the packets are received asynchronously we need to resync with bukkit to avoid async errors inside the callback.
+                Bukkit.getScheduler().runTask(SpigotApi.getInstance(), ()->callback.getInput(lines[0].equalsIgnoreCase(cancelCmd), lines, line));
 
                 //We remove the player from the currently prompted players list as we have finished
-                if(prompt.containsKey(id)){
-                    prompt.remove(id).unregister();
-                }
+                currentPrompts.remove(id);
+                SpigotApi.getMainApi().players().stopHandling(player, "SpigotApi_Prompt");
 
             }
         }));
-
-        prompt.put(id, sniffer);
 
         prompt(player, initialLines);
 
@@ -104,27 +98,10 @@ public class PromptApi implements Listener {
         Location l = player.getLocation();
 
         player.sendBlockChange(l, Material.OAK_SIGN.createBlockData());
-        player.sendSignChange(l, initialLines, promptColor);
+        player.sendSignChange(l, initialLines, promptColor); //color does not seem to work on 1.20.2 only, text is brown even if I put white. 1.20.1 and 1.20.4 look like ok, weird.
 
-        PacketsUtils.sendPacket(player, new PacketPlayOutOpenSignEditor(new BlockPosition(l.getBlockX(), l.getBlockY(), l.getBlockZ()), true));
+        SignPackets.openSign(l).send(player);
 
-    }
-
-    @EventHandler
-    public void OnPlayerQuit(PlayerQuitEvent e){
-        prompt.remove(e.getPlayer().getUniqueId());
-    }
-
-    @EventHandler
-    public void OnPluginUnload(PluginDisableEvent e){
-        if(e.getPlugin().equals(SpigotApi.getInstance())){
-            for(Player p : Bukkit.getOnlinePlayers()){
-                if(prompt.containsKey(p.getUniqueId())){
-                    prompt.remove(p.getUniqueId()).unregister();
-                }
-            }
-            prompt.clear();
-        }
     }
 
 }
