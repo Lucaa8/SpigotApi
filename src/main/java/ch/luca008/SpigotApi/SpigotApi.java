@@ -50,7 +50,7 @@ public class SpigotApi extends JavaPlugin implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent e)
     {
-        //TODO: test scoreboard, promp and nbttags apis, then remove implements listener
+        //TODO: prompt and nbttags apis, then remove implements listener
         //TODO: check skull nbt
     }
 

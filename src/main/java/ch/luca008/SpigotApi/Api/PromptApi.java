@@ -1,5 +1,6 @@
 package ch.luca008.SpigotApi.Api;
 
+import ch.luca008.SpigotApi.Packets.PacketsUtils;
 import ch.luca008.SpigotApi.SpigotApi;
 import net.minecraft.core.BlockPosition;
 import net.minecraft.network.protocol.game.PacketPlayInUpdateSign;
@@ -105,7 +106,7 @@ public class PromptApi implements Listener {
         player.sendBlockChange(l, Material.OAK_SIGN.createBlockData());
         player.sendSignChange(l, initialLines, promptColor);
 
-        SpigotApi.getMainApi().players().sendPacket(player, new PacketPlayOutOpenSignEditor(new BlockPosition(l.getBlockX(), l.getBlockY(), l.getBlockZ()), true));
+        PacketsUtils.sendPacket(player, new PacketPlayOutOpenSignEditor(new BlockPosition(l.getBlockX(), l.getBlockY(), l.getBlockZ()), true));
 
     }
 

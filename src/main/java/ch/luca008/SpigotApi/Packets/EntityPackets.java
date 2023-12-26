@@ -96,7 +96,7 @@ public class EntityPackets
         return ENTITY_COUNTER.incrementAndGet();
     }
 
-    public static Object[] addEntity(String name, @Nullable UUID uuid, @Nullable Property textures, boolean listed, int latency, @Nullable String displayName)
+    public static ApiPacket addEntity(String name, @Nullable UUID uuid, @Nullable Property textures, boolean listed, int latency, @Nullable String displayName)
     {
 
         if(displayName == null)
@@ -127,10 +127,10 @@ public class EntityPackets
                 .set("displayName", PacketsUtils.getChatComponent(displayName))
                 .set("chatSession", null);
 
-        return new Object[]{ mappings.get(ADD_ENTITY).unsafe_newInstance().set("actions", actions).set("entries", List.of(entryMap.invoke("create"))).packet() };
+        return ApiPacket.create(mappings.get(ADD_ENTITY).unsafe_newInstance().set("actions", actions).set("entries", List.of(entryMap.invoke("create"))).packet());
     }
 
-    public static Object[] spawnEntity(int entityId, UUID npc, Location location, float yaw, float pitch, float headYaw)
+    public static ApiPacket spawnEntity(int entityId, UUID npc, Location location, float yaw, float pitch, float headYaw)
     {
 
         Object PacketPlayOutSpawnEntity = mappings.get(SPAWN_ENTITY).unsafe_newInstance()
@@ -152,17 +152,18 @@ public class EntityPackets
         if(packets.length == 2)
             packets[1] = PacketPlayOutEntityHeadRotation;
 
-        return packets;
+        return ApiPacket.create(packets);
     }
 
-    public static Object[] removeEntity(UUID uuid)
+    public static ApiPacket removeEntity(UUID uuid)
     {
-        return new Object[]{mappings.get(REMOVE_ENTITY).newInstance(new Class[]{List.class}, List.of(uuid)).packet()};
+        return ApiPacket.create(mappings.get(REMOVE_ENTITY).newInstance(new Class[]{List.class}, List.of(uuid)).packet());
     }
 
-    public static Object[] destroyEntity(int entityId)
+    public static ApiPacket destroyEntity(int entityId)
     {
-        return new Object[]{mappings.get(DESTROY_ENTITY).newInstance(new Class[]{int[].class}, (Object) new int[]{entityId}).packet()}; //do not remove this cast
+        //                                                                                  do not remove this cast
+        return ApiPacket.create(mappings.get(DESTROY_ENTITY).newInstance(new Class[]{int[].class}, (Object) new int[]{entityId}).packet());
     }
 
     /**
@@ -170,9 +171,9 @@ public class EntityPackets
      * @param entityId The entity to update on the client
      * @return A packet which update this entity on the client
      */
-    public static Object[] updateSkin(int entityId)
+    public static ApiPacket updateSkin(int entityId)
     {
-        return new Object[]{mappings.get(ENTITY_METADATA).newInstance(new Class[]{int.class, List.class}, entityId, List.of(data_watcher)).packet()};
+        return ApiPacket.create(mappings.get(ENTITY_METADATA).newInstance(new Class[]{int.class, List.class}, entityId, List.of(data_watcher)).packet());
     }
 
     public static Object[] getInteractionFromPacket(Object packet)

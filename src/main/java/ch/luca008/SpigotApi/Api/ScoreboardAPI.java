@@ -1,8 +1,9 @@
 package ch.luca008.SpigotApi.Api;
 
-import ch.luca008.SpigotApi.Packets.ScoreboardPackets.*;
+import ch.luca008.SpigotApi.Packets.ScoreboardsPackets;
+import ch.luca008.SpigotApi.Packets.ScoreboardsPackets.*;
 import ch.luca008.SpigotApi.SpigotApi;
-import org.bukkit.Bukkit;
+import ch.luca008.SpigotApi.Utils.Logger;
 import org.bukkit.entity.Player;
 
 import javax.annotation.Nonnull;
@@ -132,8 +133,8 @@ public class ScoreboardAPI {
             Scoreboard newBoard = SpigotApi.getScoreboardApi()._getScoreboard(parentBoard);
             if(currentBoard!=null||newBoard!=null){
                 if(currentBoard!=null){
-                    playerApi().sendPacket(player, scoreboardApi().getScoreboardDisplayHidePacket());
-                    playerApi().sendPacket(player, scoreboardApi().getScoreboardRemoveObjectivePacket(currentBoard.getName()));
+                    scoreboardApi().getScoreboardDisplayHidePacket(Slot.SIDEBAR).send(player);
+                    scoreboardApi().getScoreboardRemoveObjectivePacket(currentBoard.getName()).send(player);
                     this.parentBoard = null;
                     this.playerTitle = null;
                     this.playerLines = new ArrayList<>();
@@ -143,15 +144,16 @@ public class ScoreboardAPI {
                     this.parentBoard = newBoard.getName();
                     playerTitle = newBoard.getTitle();
                     playerLines = cloneLines(newBoard.getLines());
-                    playerApi().sendPacket(player, scoreboardApi().getScoreboardObjectivePacket(this.parentBoard, Mode.ADD, this.playerTitle));
-                    playerApi().sendPacket(player, scoreboardApi().getScoreboardDisplayPacket(this.parentBoard));
+                    scoreboardApi().getScoreboardObjectivePacket(this.parentBoard, Mode.ADD, this.playerTitle, RenderType.INTEGER).send(player);
+                    scoreboardApi().getScoreboardDisplayPacket(this.parentBoard, Slot.SIDEBAR).send(player);
                     ArrayList<ScoreboardLine> reverse = new ArrayList<>(this.playerLines);
                     Collections.reverse(reverse);
                     for(int i=reverse.size()-1;i>=0;i--){
                         for(String placeholder : reverse.get(i).placeholders){
                             this.placeholders.put(placeholder, "");
                         }
-                        playerApi().sendPacket(player, scoreboardApi().getScoreboardChangeScorePacket(parentBoard, reverse.get(i).text, i));
+                        ScoreboardLine line = reverse.get(i);
+                        scoreboardApi().getScoreboardChangeScorePacket(parentBoard, line.lineId, line.text, i).send(player);
                     }
                 }
             }
@@ -179,13 +181,13 @@ public class ScoreboardAPI {
         public void setCurrentTitle(String title){
             if(isParentBoardValid()){
                 this.playerTitle = title;
-                playerApi().sendPacket(player, scoreboardApi().getScoreboardObjectivePacket(this.parentBoard, Mode.CHANGE, title));
+                scoreboardApi().getScoreboardObjectivePacket(this.parentBoard, Mode.CHANGE, title, RenderType.INTEGER).send(player);
             }
         }
 
         public void setPlaceholder(String placeholder, String value) {
             Scoreboard pboard = getParentBoard();
-            //Allow developpers to use "online" to target "{ONLINE}" i.e
+            //Allow developpers to use i.e: "online" to target "{ONLINE}"
             placeholder = (placeholder.startsWith("{") ? "" : "{") + placeholder.toUpperCase() + (placeholder.endsWith("}") ? "" : "}");
             if(pboard == null || !this.placeholders.containsKey(placeholder))
                 return;
@@ -204,18 +206,18 @@ public class ScoreboardAPI {
             for(String placeholder : initialLine.placeholders){
                 finalLine = finalLine.replace(placeholder, this.placeholders.getOrDefault(placeholder, ""));
             }
-            ScoreboardLine pLine = getLine(initialLine.line);
+            ScoreboardLine pLine = getLine(initialLine.lineId);
             if(pLine!=null&&!pLine.text.equals(finalLine)){
-                playerApi().sendPacket(player, scoreboardApi().getScoreboardRemoveScorePacket(parentBoard, pLine.text));
+                String oldText = pLine.text;
                 pLine.setText(finalLine);
-                playerApi().sendPacket(player, scoreboardApi().getScoreboardChangeScorePacket(parentBoard, pLine.text, playerLines.size()-pLine.line));
+                ScoreboardsPackets.updateScore(parentBoard, pLine.lineId, oldText, finalLine, playerLines.size()-pLine.line-1).send(player);
             }
         }
 
         @Nullable
-        public ScoreboardLine getLine(int line){
+        public ScoreboardLine getLine(String lineId){
             for(ScoreboardLine l : playerLines){
-                if(l.line==line){
+                if(l.lineId.equals(lineId)){
                     return l;
                 }
             }
@@ -233,7 +235,7 @@ public class ScoreboardAPI {
         private ArrayList<ScoreboardLine> cloneLines(ArrayList<ScoreboardLine> parentLines){
             ArrayList<ScoreboardLine> l = new ArrayList<>();
             for(ScoreboardLine line : parentLines){
-                l.add(new ScoreboardLine(line.line, line.text));
+                l.add(new ScoreboardLine(line.lineId, line.line, line.text));
             }
             return l;
         }
@@ -274,14 +276,13 @@ public class ScoreboardAPI {
         }
 
         public ArrayList<ScoreboardLine> getLines() {
-            return lines;
+            return new ArrayList<>(lines);
         }
 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (!(o instanceof Scoreboard)) return false;
-            Scoreboard that = (Scoreboard) o;
+            if (!(o instanceof Scoreboard that)) return false;
             return name.equals(that.name);
         }
 
@@ -292,12 +293,14 @@ public class ScoreboardAPI {
     }
 
     public static class ScoreboardLine {
+        private final String lineId;
         private final int line;
         private String text;
 
         private final List<String> placeholders = new ArrayList<>();
 
-        private ScoreboardLine(int line, String text){
+        private ScoreboardLine(String lineId, int line, String text){
+            this.lineId = lineId;
             this.line = line;
             this.text = text;
             Matcher matcher = Pattern.compile("\\{[_A-Z0-9]*}").matcher(this.text);
@@ -306,6 +309,9 @@ public class ScoreboardAPI {
             }
         }
 
+        public String getLineId() {
+            return lineId;
+        }
         public int getLine(){
             return line;
         }
@@ -320,7 +326,8 @@ public class ScoreboardAPI {
         @Override
         public String toString() {
             return "ScoreboardLine{" +
-                    "line=" + line +
+                    "lineId='" + lineId + '\'' +
+                    ", line=" + line +
                     ", text='" + text + '\'' +
                     '}';
         }
@@ -328,14 +335,13 @@ public class ScoreboardAPI {
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (!(o instanceof ScoreboardLine)) return false;
-            ScoreboardLine that = (ScoreboardLine) o;
-            return line == that.line && text.equals(that.text);
+            if (!(o instanceof ScoreboardLine that)) return false;
+            return line == that.line && text.equals(that.text) && lineId.equals(that.lineId);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(line, text);
+            return Objects.hash(lineId, line, text);
         }
 
         public static void sortLines(ArrayList<ScoreboardLine> lines){
@@ -346,14 +352,19 @@ public class ScoreboardAPI {
     public static class LinesBuilder {
         private final ArrayList<ScoreboardLine> lines = new ArrayList<>();
 
-        public LinesBuilder add(int line, String text){
+        public LinesBuilder add(String lineId, int line, String text){
             for(ScoreboardLine l : lines){
-                if(l.line==line){
-                    l.text = text;
+                if(l.lineId.equals(lineId)){
+                    if(l.line != line) {
+                        Logger.warn("The scoreboard line (" + lineId + ", " + line + ") was already present in this builder but with another line number (" + l.line + "). Skipping...", ScoreboardAPI.class.getName());
+                    } else {
+                        Logger.info("The scoreboard line (" + lineId + ", " + line + ") is already present in this builder, updating text...", ScoreboardAPI.class.getName());
+                        l.text = text;
+                    }
                     return this;
                 }
             }
-            lines.add(new ScoreboardLine(line, text));
+            lines.add(new ScoreboardLine(lineId, line, text));
             return this;
         }
 

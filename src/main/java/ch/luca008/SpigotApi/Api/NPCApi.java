@@ -1,5 +1,6 @@
 package ch.luca008.SpigotApi.Api;
 
+import ch.luca008.SpigotApi.Packets.ApiPacket;
 import ch.luca008.SpigotApi.Packets.EntityPackets;
 import ch.luca008.SpigotApi.Packets.PacketsUtils;
 import ch.luca008.SpigotApi.SpigotApi;
@@ -120,8 +121,6 @@ public class NPCApi implements Listener {
 
     public static class NPC {
 
-        private static final MainApi.SpigotPlayer api = SpigotApi.getMainApi().players();
-
         private final int id;
         private final UUID uuid;
         private final String name;
@@ -165,21 +164,21 @@ public class NPCApi implements Listener {
         }
 
         public void spawn(Player player){
-            api.sendPackets(player, createPackets());
-            Bukkit.getScheduler().runTaskLater(SpigotApi.getInstance(), ()-> api.sendPackets(player, EntityPackets.removeEntity(this.uuid)),10L);
+            createPackets().send(player);
+            Bukkit.getScheduler().runTaskLater(SpigotApi.getInstance(), ()->EntityPackets.removeEntity(this.uuid).send(player),10L);
         }
 
         public void spawn(){
-            api.sendPackets(Bukkit.getOnlinePlayers(), createPackets());
-            Bukkit.getScheduler().runTaskLater(SpigotApi.getInstance(), ()-> api.sendPackets(Bukkit.getOnlinePlayers(), EntityPackets.removeEntity(this.uuid)),10L);
+            createPackets().sendToOnline();
+            Bukkit.getScheduler().runTaskLater(SpigotApi.getInstance(), ()->EntityPackets.removeEntity(this.uuid).sendToOnline(),10L);
         }
 
         public void despawn(Player player){
-            api.sendPackets(player, removePackets());
+            removePackets().send(player);
         }
 
         public void despawn(){
-            api.sendPackets(Bukkit.getOnlinePlayers(), removePackets());
+            removePackets().sendToOnline();
         }
 
         public void respawn(Player player){
@@ -192,21 +191,25 @@ public class NPCApi implements Listener {
             spawn();
         }
 
-        protected Object[] removePackets(){
-            return Arrays.stream(new Object[][]{
-                    EntityPackets.destroyEntity(this.id),
-                    EntityPackets.removeEntity(this.uuid)
-            }).flatMap(Arrays::stream).toArray();
+        protected ApiPacket removePackets(){
+            ApiPacket destroy = EntityPackets.destroyEntity(this.id);
+            ApiPacket remove = EntityPackets.removeEntity(this.uuid);
+            destroy.addAll(remove);
+            return destroy;
         }
 
-        protected Object[] createPackets(){
+        protected ApiPacket createPackets(){
             int yaw = this.direction == Directions.OTHER ? (int)this.position.getYaw() : this.direction.getBodyYaw();
             int pitch = this.direction == Directions.OTHER ? (int)this.position.getPitch() : this.direction.getPitch();
-            return Arrays.stream(new Object[][]{
-                    EntityPackets.addEntity(this.name, this.uuid, this.textures, false, -1, null),
-                    EntityPackets.spawnEntity(this.id, this.uuid, this.position, yaw, pitch, this.direction.getHeadYaw()),
-                    EntityPackets.updateSkin(this.id)
-            }).flatMap(Arrays::stream).toArray();
+
+            ApiPacket addEntity = EntityPackets.addEntity(this.name, this.uuid, this.textures, false, -1, null);
+            ApiPacket spawnEntity = EntityPackets.spawnEntity(this.id, this.uuid, this.position, yaw, pitch, this.direction.getHeadYaw());
+            ApiPacket updateSkin = EntityPackets.updateSkin(this.id);
+
+            addEntity.addAll(spawnEntity);
+            addEntity.add(updateSkin);
+
+            return addEntity;
         }
 
         @Override

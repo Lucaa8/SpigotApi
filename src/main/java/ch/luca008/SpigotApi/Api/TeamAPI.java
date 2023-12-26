@@ -1,5 +1,6 @@
 package ch.luca008.SpigotApi.Api;
 
+import ch.luca008.SpigotApi.Packets.ApiPacket;
 import ch.luca008.SpigotApi.Packets.PacketsUtils.ChatColor;
 import ch.luca008.SpigotApi.Packets.TeamsPackets.Collisions;
 import ch.luca008.SpigotApi.Packets.TeamsPackets.Mode;
@@ -306,45 +307,43 @@ public class TeamAPI implements Listener {
 
         private void update(){
             MainApi api = SpigotApi.getMainApi();
-            Object[] updatePackets = api.packets().teams().getCreateOrUpdateTeamPacket(getReelUniqueName(), Mode.UPDATE, getDisplayName(),
+            ApiPacket updatePackets = api.packets().teams().getCreateOrUpdateTeamPacket(getReelUniqueName(), Mode.UPDATE, getDisplayName(),
                     getNameTagVisibility(), getCollisions(), getColor(), getPrefix(), getSuffix());
             if(updatePackets!=null)
             {
-                api.players().sendPackets(Bukkit.getOnlinePlayers(), updatePackets);
+                updatePackets.sendToOnline();
             }
         }
 
         private void updateEntries(Mode action, List<String> entries){
             MainApi api = SpigotApi.getMainApi();
-            Object[] updatePackets = null;
+            ApiPacket updatePackets = null;
             if(action==Mode.ADD_ENTITY){
                 updatePackets = api.packets().teams().getAddEntityTeamPacket(getReelUniqueName(), entries.toArray(new String[0]));
             }else if(action==Mode.REMOVE_ENTITY){
                 updatePackets = api.packets().teams().getRemoveEntityTeamPacket(getReelUniqueName(), entries.toArray(new String[0]));
             }
             if(updatePackets!=null){
-                api.players().sendPackets(Bukkit.getOnlinePlayers(), updatePackets);
+                updatePackets.sendToOnline();
             }
         }
 
         public void sendCreatePacket(Player...players){
             MainApi api = SpigotApi.getMainApi();
-            Collection<Player> pls = Arrays.stream(players).collect(Collectors.toList());
-            Object[] createPackets = api.packets().teams().getCreateOrUpdateTeamPacket(getReelUniqueName(), Mode.CREATE, getDisplayName(),
+            ApiPacket createPackets = api.packets().teams().getCreateOrUpdateTeamPacket(getReelUniqueName(), Mode.CREATE, getDisplayName(),
                     getNameTagVisibility(), getCollisions(), getColor(), getPrefix(), getSuffix(), entries.toArray(new String[0]));
             if(createPackets != null)
             {
-                api.players().sendPackets(pls, createPackets);
+                createPackets.send(Arrays.stream(players).collect(Collectors.toList()));
             }
         }
 
         public void sendDeletePacket(Player...players){
             MainApi api = SpigotApi.getMainApi();
-            Collection<Player> pls = Arrays.stream(players).collect(Collectors.toList());
-            Object[] deletePackets = api.packets().teams().getDeleteTeamPacket(getReelUniqueName());
+            ApiPacket deletePackets = api.packets().teams().getDeleteTeamPacket(getReelUniqueName());
             if(deletePackets != null)
             {
-                api.players().sendPackets(pls, deletePackets);
+                deletePackets.send(Arrays.stream(players).collect(Collectors.toList()));
             }
         }
 

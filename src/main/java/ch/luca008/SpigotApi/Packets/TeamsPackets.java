@@ -87,18 +87,18 @@ public class TeamsPackets
                 .packet();
     }
 
-    private static Object[] packet(String uniqueName, Mode mode, Optional<Object> parameters, String...entitiesArray)
+    private static ApiPacket packet(String uniqueName, Mode mode, Optional<Object> parameters, String...entitiesArray)
     {
         ObjectMapping packet = mappings.get(TEAM_PACKET).unsafe_newInstance();
         if(mode==Mode.DELETE) {
-            return new Object[]{packet.set("method", Mode.DELETE.mode).set("name", uniqueName).packet()};
+            return ApiPacket.create(packet.set("method", Mode.DELETE.mode).set("name", uniqueName).packet());
         } else {
             Collection<String> entities = mode != Mode.UPDATE ? new ArrayList<>(Arrays.asList(entitiesArray)) : Collections.emptyList();
-            return new Object[]{packet.set("method", mode.mode).set("name", uniqueName).set("parameters", parameters).set("players", entities).packet()};
+            return ApiPacket.create(packet.set("method", mode.mode).set("name", uniqueName).set("parameters", parameters).set("players", entities).packet());
         }
     }
 
-    public static Object[] createOrUpdateTeam(String uniqueName, Mode mode, String displayName, NameTagVisibility nameTagVisibility, Collisions teamPush, PacketsUtils.ChatColor teamColor, String prefix, String suffix, String...entities)
+    public static ApiPacket createOrUpdateTeam(String uniqueName, Mode mode, String displayName, NameTagVisibility nameTagVisibility, Collisions teamPush, PacketsUtils.ChatColor teamColor, String prefix, String suffix, String...entities)
     {
         if (mode != Mode.CREATE && mode != Mode.UPDATE) {
             Logger.error("Cannot use another mode than CREATE or UPDATE in the createOrUpdateTeam method.", TeamsPackets.class.getName());
@@ -107,12 +107,12 @@ public class TeamsPackets
         return packet(uniqueName, mode, Optional.of(parametersObject(displayName, prefix, suffix, nameTagVisibility, teamPush, teamColor)), entities);
     }
 
-    public static Object[] deleteTeam(String uniqueName)
+    public static ApiPacket deleteTeam(String uniqueName)
     {
         return packet(uniqueName, Mode.DELETE, Optional.empty());
     }
 
-    public static Object[] updateEntities(String uniqueName, Mode mode, String...entities)
+    public static ApiPacket updateEntities(String uniqueName, Mode mode, String...entities)
     {
         if(mode == Mode.ADD_ENTITY || mode == Mode.REMOVE_ENTITY)
             return packet(uniqueName, mode, Optional.empty(), entities);
