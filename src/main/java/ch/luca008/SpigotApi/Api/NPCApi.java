@@ -3,9 +3,9 @@ package ch.luca008.SpigotApi.Api;
 import ch.luca008.SpigotApi.Packets.ApiPacket;
 import ch.luca008.SpigotApi.Packets.EntityPackets;
 import ch.luca008.SpigotApi.SpigotApi;
+import ch.luca008.SpigotApi.Utils.ApiProperty;
 import ch.luca008.SpigotApi.Utils.Logger;
 import ch.luca008.SpigotApi.Utils.WebRequest;
-import com.mojang.authlib.properties.Property;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -71,13 +71,14 @@ public class NPCApi implements Listener {
 
     }
 
-    public static Property getProperty(String playerName) {
-        return WebRequest.getSkin(playerName);
+    @Nullable
+    public static ApiProperty getProperty(String playerName) {
+        return WebRequest.getSkin(playerName, true);
     }
 
-    public static Property getProperty(String value, String signature)
+    public static ApiProperty getProperty(String value, String signature)
     {
-        return new Property("textures", value, signature);
+        return new ApiProperty("textures", value, signature);
     }
 
     public void addInteractHandler(NPC npc, OnNPCInteract handler)
@@ -105,11 +106,11 @@ public class NPCApi implements Listener {
         private final int id;
         private final UUID uuid;
         private final String name;
-        private final Property textures;
+        private final ApiProperty textures;
         private Location position;
         private Directions direction;
 
-        public NPC(@Nullable UUID uuid, String name, @Nullable Property textures, Location position, Directions direction, boolean spawn){
+        public NPC(@Nullable UUID uuid, String name, @Nullable ApiProperty textures, Location position, Directions direction, boolean spawn){
             this.id = EntityPackets.nextId();
             this.uuid = uuid == null ? UUID.randomUUID() : uuid;
             this.name = name;
@@ -188,7 +189,7 @@ public class NPCApi implements Listener {
             ApiPacket updateSkin = EntityPackets.updateSkin(this.id);
 
             addEntity.addAll(spawnEntity);
-            addEntity.add(updateSkin);
+            addEntity.addAll(updateSkin);
 
             return addEntity;
         }

@@ -49,7 +49,9 @@ public class SpigotApi extends JavaPlugin implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent e)
     {
-        //TODO: keep it to test skull nbt and then remove implements listener
+
+        new NPCApi.NPC(null, "testnpc", null, e.getPlayer().getLocation(), NPCApi.Directions.NORTH, true);
+
     }
 
     public void onDisable(){

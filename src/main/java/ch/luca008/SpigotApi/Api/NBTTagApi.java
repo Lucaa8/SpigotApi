@@ -3,12 +3,16 @@ package ch.luca008.SpigotApi.Api;
 import ch.luca008.SpigotApi.Api.ReflectionApi.ClassMapping;
 import ch.luca008.SpigotApi.Api.ReflectionApi.Version;
 import ch.luca008.SpigotApi.SpigotApi;
+import ch.luca008.SpigotApi.Utils.ApiProperty;
+import com.mojang.authlib.GameProfile;
 import org.apache.commons.lang.ClassUtils;
 import org.bukkit.inventory.ItemStack;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
+import java.util.function.Supplier;
 
 public class NBTTagApi {
 
@@ -16,6 +20,7 @@ public class NBTTagApi {
     private static final String NMS_ITEM_STACK = "NMSItemStack";
     private static final String NBT_COMPOUND = "NBTTagCompound";
     private static final String NBT_BASE = "NBTBase";
+    private static final String GAME_PROFILE_SERIALIZER = "NbtUtils";
 
     private static final Map<Class<?>, Class<?>> NBT_TYPES = new HashMap<>();
 
@@ -29,6 +34,7 @@ public class NBTTagApi {
 
         mappings.put(NMS_ITEM_STACK, new ClassMapping(ReflectionApi.getNMSClass("world.item", "ItemStack"), new HashMap<>(), new HashMap<>(){{ put("getOrCreateTag", "w"); put("setTag", "c"); put("removeTagKey", "c"); put("hasTag", "u"); }}));
         mappings.put(NBT_COMPOUND, new ClassMapping(ReflectionApi.getNMSClass("nbt", "NBTTagCompound"), new HashMap<>(){{ put("tags", "x"); }}, new HashMap<>(){{ put("put", "a"); put("get", "c"); }}));
+        mappings.put(GAME_PROFILE_SERIALIZER, new ClassMapping(ReflectionApi.getNMSClass("nbt", "GameProfileSerializer"), new HashMap<>(), new HashMap<>(){{ put("writeGameProfile", "a"); }}));
 
         String getAsString = "m_"; //1.20.1
         switch (v)
@@ -64,6 +70,8 @@ public class NBTTagApi {
     public ItemStack getBukkitItem(Object nmsItem) {
         return (ItemStack) ReflectionApi.invoke(OBC_ITEM_STACK, null, "asBukkitCopy", new Class[]{nmsItem.getClass()}, nmsItem);
     }
+
+    private final Supplier<Object> newCompound = () -> mappings.get(NBT_COMPOUND).newInstance().packet();
 
     private Object fromObjectToNBTBase(Object o) {
 
@@ -112,17 +120,32 @@ public class NBTTagApi {
     }
 
     private void setTag(Object nmsItem, String tagName, Object value) {
-        value = fromObjectToNBTBase(value);
+
+        if(!mappings.get(NBT_BASE).getMappedClass().isAssignableFrom(value.getClass()))
+            value = fromObjectToNBTBase(value);
+
         if(value != null)
         {
             Object tagCompound = getTagCompound(nmsItem);
             mappings.get(NBT_COMPOUND).invoke(tagCompound, "put", new Class[]{String.class, mappings.get(NBT_BASE).getMappedClass()}, tagName, value);
             mappings.get(NMS_ITEM_STACK).invoke(nmsItem, "setTag", new Class[]{tagCompound.getClass()}, tagCompound);
         }
+
     }
 
     private void removeTag(Object nmsItem, String tagName) {
         mappings.get(NMS_ITEM_STACK).invoke(nmsItem, "removeTagKey", new Class[]{String.class}, tagName);
+    }
+
+    private void setSkullCompound(Object nmsItem, String ownerName, String textureValue)
+    {
+        GameProfile profile = new GameProfile(UUID.randomUUID(), ownerName);
+        new ApiProperty("textures", textureValue, null).addProperty(profile);
+
+        Object emptyCompound = newCompound.get();
+        Object headCompound = mappings.get(GAME_PROFILE_SERIALIZER).invoke(null, "writeGameProfile", new Class[]{emptyCompound.getClass(), profile.getClass()}, emptyCompound, profile);
+
+        setTag(nmsItem, "SkullOwner", headCompound);
     }
 
     public static class NBTItem {
@@ -141,6 +164,12 @@ public class NBTTagApi {
 
         public NBTItem removeTag(String tag) {
             this.api.removeTag(this.nmsItem, tag);
+            return this;
+        }
+
+        public NBTItem addSkullTexture(String ownerName, String textureValue)
+        {
+            this.api.setSkullCompound(this.nmsItem, ownerName, textureValue);
             return this;
         }
 

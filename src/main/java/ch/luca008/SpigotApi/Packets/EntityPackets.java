@@ -4,9 +4,9 @@ import ch.luca008.SpigotApi.Api.ReflectionApi;
 import ch.luca008.SpigotApi.Api.ReflectionApi.ClassMapping;
 import ch.luca008.SpigotApi.Api.ReflectionApi.ObjectMapping;
 import ch.luca008.SpigotApi.Api.ReflectionApi.Version;
+import ch.luca008.SpigotApi.Utils.ApiProperty;
 import ch.luca008.SpigotApi.Utils.Logger;
 import com.mojang.authlib.GameProfile;
-import com.mojang.authlib.properties.Property;
 import org.bukkit.Location;
 
 import javax.annotation.Nullable;
@@ -96,7 +96,7 @@ public class EntityPackets
         return ENTITY_COUNTER.incrementAndGet();
     }
 
-    public static ApiPacket addEntity(String name, @Nullable UUID uuid, @Nullable Property textures, boolean listed, int latency, @Nullable String displayName)
+    public static ApiPacket addEntity(String name, @Nullable UUID uuid, @Nullable ApiProperty textures, boolean listed, int latency, @Nullable String displayName)
     {
 
         if(displayName == null)
@@ -104,7 +104,7 @@ public class EntityPackets
 
         GameProfile profile = new GameProfile(uuid == null ? UUID.randomUUID() : uuid, name);
         if(textures != null)
-            profile.getProperties().put("textures", textures);
+            textures.addProperty(profile);
 
         ClassMapping actionsMap = mappings.get(ADD_ENTITY_ACTION);
         ObjectMapping entryMap = mappings.get(ADD_ENTITY_ENTRY).unsafe_newInstance();
@@ -115,7 +115,7 @@ public class EntityPackets
             actions.add(actionsMap.getEnumValue("LISTED"));
 
         if(latency >= 0)
-            actionsMap.getEnumValue("PING");
+            actions.add(actionsMap.getEnumValue("PING"));
 
         actions.add(actionsMap.getEnumValue("NAME"));
 

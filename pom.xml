@@ -45,7 +45,7 @@
                 <configuration>
                     <shadedArtifactAttached>true</shadedArtifactAttached>
                     <shadedClassifierName>shaded</shadedClassifierName>
-                    <outputDirectory>C:\Users\lucad\Desktop\Test\Test1204\plugins</outputDirectory>
+                    <outputDirectory>C:\Users\lucad\Desktop\Test\Test1201\plugins</outputDirectory>
                 </configuration>
             </plugin>
         </plugins>

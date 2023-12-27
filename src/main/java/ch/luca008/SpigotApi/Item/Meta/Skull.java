@@ -2,10 +2,9 @@ package ch.luca008.SpigotApi.Item.Meta;
 
 import ch.luca008.SpigotApi.Api.NBTTagApi;
 import ch.luca008.SpigotApi.SpigotApi;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagIntArray;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.nbt.NBTTagString;
+import ch.luca008.SpigotApi.Utils.ApiProperty;
+import ch.luca008.SpigotApi.Utils.Logger;
+import ch.luca008.SpigotApi.Utils.WebRequest;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -20,7 +19,7 @@ public class Skull implements Meta{
 
     public enum SkullOwnerType{
         PLAYER, //A dynamic custom player (with applyOwner(UniPlayer)) (owner = null)
-        PSEUDO, //A defined player pseudo i.e "Luca008" (owner = "Luca008")
+        PSEUDO, //A defined player pseudo i.e "Luca008" (owner = "Luca008"), the skin will be the official online mojang servers skin for this pseudo
         MCHEADS; //A defined existing mcheads custom head i.e "King Creeper" (owner = "King Creeper's value")
     }
     private SkullOwnerType type = null;
@@ -57,7 +56,7 @@ public class Skull implements Meta{
                 NBTTagApi.NBTItem nbt = SpigotApi.getNBTTagApi().getNBT(item);
                 if(nbt.hasTags()&&owner!=null){
                     try{
-                        String value = nbt.getTags().toString().split("Value:\"")[1];
+                        String value = nbt.getTagCompound().toString().split("Value:\"")[1];
                         return owner.equals(value.substring(0,value.indexOf("\"")));
                     }catch(Exception e){
                         System.err.println("Can't read and parse(trying to find 'Value:\"someValue\"') the following nbttag: " + nbt.getTags());
@@ -77,11 +76,12 @@ public class Skull implements Meta{
     public ItemStack apply(ItemStack item) {
         if(item==null||item.getType()!=Material.PLAYER_HEAD||item.getItemMeta()==null||type==null||type==SkullOwnerType.PLAYER)return item;
         if(type==SkullOwnerType.PSEUDO){
-            SkullMeta sm = (SkullMeta) item.getItemMeta();
-            sm.setOwningPlayer(Bukkit.getOfflinePlayer(owner));
-            item.setItemMeta(sm);
+            ApiProperty textures = WebRequest.getSkin(owner, false);
+            if(textures != null)
+                return SpigotApi.getNBTTagApi().getNBT(item).addSkullTexture(owner, textures.value()).getBukkitItem();
+            Logger.warn("Cannot apply null texture to skull item. (Failed to fetch textures for name " + owner + ").", Skull.class.getName());
             return item;
-        }else return applySignature(item, owner);
+        }else return SpigotApi.getNBTTagApi().getNBT(item).addSkullTexture("Custom", owner).getBukkitItem();
     }
 
     public ItemStack applyOwner(ItemStack item, UUID player){
@@ -118,28 +118,4 @@ public class Skull implements Meta{
         return "{MetaType:SKULL,Type:"+(type==null?"Null":type.name())+"Owner:{Value:"+(owner==null?"None":owner)+"}}";
     }
 
-    public static ItemStack applySignature(ItemStack item, String encodedURL){
-        net.minecraft.world.item.ItemStack nmsItem = (net.minecraft.world.item.ItemStack) SpigotApi.getNBTTagApi().getNMSItem(item);
-
-        NBTTagCompound tags = (NBTTagCompound) SpigotApi.getNBTTagApi().getNBT(item).getTagCompound(); //NBTTagCompound "tag"
-
-        NBTTagIntArray id = new NBTTagIntArray(new int[]{0,0,0,0});
-        NBTTagString val = NBTTagString.a(encodedURL);
-
-        NBTTagCompound compoundSO = new NBTTagCompound();
-        NBTTagCompound compoundProp = new NBTTagCompound();
-        NBTTagCompound compound0 = new NBTTagCompound();
-        NBTTagList textures = new NBTTagList();
-
-        compound0.a("Value", val);
-        textures.b(0, compound0);
-        compoundProp.a("textures", textures);
-        compoundSO.a("Id", id);
-        compoundSO.a("Properties", compoundProp);
-
-        tags.a("SkullOwner", compoundSO);
-        nmsItem.c(tags);
-
-        return SpigotApi.getNBTTagApi().getBukkitItem(nmsItem);
-    }
 }
