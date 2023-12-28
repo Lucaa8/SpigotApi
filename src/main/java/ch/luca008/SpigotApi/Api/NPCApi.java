@@ -10,64 +10,74 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
-public class NPCApi implements Listener {
+public class NPCApi {
 
-    public interface OnNPCInteract {
-        void interact(int npcId, Player player, ClickType clickType);
-    }
+    public static class NPCApiListeners implements Listener {
 
-    private final Map<Integer,OnNPCInteract> callbacks = new HashMap<>();
-
-    @EventHandler
-    public void onPlayerJoinSetNPCCallback(PlayerJoinEvent e)
-    {
-        final Player player = e.getPlayer();
-        SpigotApi.getMainApi().players().startHandling(player, "SpigotApi_NPC", (packet, cancellable) -> {
-            try {
-                Object[] interaction = EntityPackets.getInteractionFromPacket(packet);
-                if(interaction != null)
-                {
-                    int entity = (int)interaction[0];
-                    if(callbacks.containsKey(entity))
-                    {
-                        Bukkit.getScheduler().runTask(SpigotApi.getInstance(), ()->callbacks.get(entity).interact(entity, player, ((String)interaction[1]).equals("ATTACK") ? ClickType.LEFT : ClickType.RIGHT));
-                        cancellable.setCancelled(true);
-                    }
-                }
-            } catch(Exception ex) {
-                Logger.error("An error occurred during the handling of a packet. Interaction ignored.", getClass().getName());
-                ex.printStackTrace();
-            }
-        });
-    }
-
-    public enum Directions {
-        OTHER(0, 0, 0), NORTH(228, 180, 0), EAST(-138, -90, 0), WEST(138, 90, 0), SOUTH(0, 0, 0);
-
-        private final int bodyYaw;
-        private final int headYaw;
-        private final int pitch;
-
-        Directions(int bodyYaw, int headYaw, int pitch)
+        private Map<Integer, NPC> getNpcList()
         {
-            this.bodyYaw = bodyYaw;
-            this.headYaw = headYaw;
-            this.pitch = pitch;
+            return SpigotApi.getNpcApi().npcs;
         }
 
-        public int getBodyYaw(){return bodyYaw;}
-        public int getHeadYaw(){return headYaw;}
-        public int getPitch(){return pitch;}
+        @EventHandler
+        public void onPlayerJoinAddNPCAndSetCallback(PlayerJoinEvent e)
+        {
+            final Player player = e.getPlayer();
+            final Map<Integer, NPC> npcs = getNpcList();
+            SpigotApi.getMainApi().players().startHandling(player, "SpigotApi_NPC", (packet, cancellable) -> {
+                try {
+                    Object[] interaction = EntityPackets.getInteractionFromPacket(packet);
+                    if(interaction != null)
+                    {
+                        int entity = (int)interaction[0];
+                        if(npcs.containsKey(entity))
+                        {
+                            if(npcs.get(entity).syncCallInteraction(player, ((String)interaction[1]).equals("ATTACK") ? ClickType.LEFT : ClickType.RIGHT))
+                                cancellable.setCancelled(true);
+                        }
+                    }
+                } catch(Exception ex) {
+                    Logger.error("An error occurred during the handling of a packet. Interaction ignored.", getClass().getName());
+                    ex.printStackTrace();
+                }
+            });
+
+            npcs.values().stream().filter(npc->npc.isActive&&npc.position.getWorld()==e.getPlayer().getWorld()).forEach(npc->npc.spawn(List.of(e.getPlayer())));
+        }
+
+        @EventHandler
+        public void onWorldChange(PlayerChangedWorldEvent e)
+        {
+            getNpcList().values().stream().filter(npc->npc.isActive&&npc.position.getWorld()==e.getPlayer().getWorld()).forEach(npc->npc.spawn(List.of(e.getPlayer())));
+        }
+
+        @EventHandler
+        public void onMove(PlayerMoveEvent e)
+        {
+
+            if(e.getTo() == null || e.getTo().distanceSquared(e.getFrom()) < 0.001) //avoid updating when its only a direction change (head pitch/yaw)
+                return;
+            Location to = e.getTo().clone();
+
+            for(NPC npc : getNpcList().values())
+            {
+                if(npc.isActive&&npc.position.getWorld()==to.getWorld()&&npc.position.distanceSquared(to) <= npc.squaredTrackDistance)
+                {
+                    npc.lookAt(e.getPlayer(), to);
+                }
+            }
+
+        }
 
     }
 
@@ -81,24 +91,50 @@ public class NPCApi implements Listener {
         return new ApiProperty("textures", value, signature);
     }
 
-    public void addInteractHandler(NPC npc, OnNPCInteract handler)
+    public interface OnNPCInteract {
+        void interact(NPC npc, Player player, ClickType clickType);
+    }
+
+    private final Map<Integer,NPC> npcs = new HashMap<>();
+    private final NPCApiListeners listeners = new NPCApiListeners();
+
+    public NPCApi()
     {
-        if(callbacks.containsKey(npc.id))
+        Bukkit.getPluginManager().registerEvents(listeners, SpigotApi.getInstance());
+    }
+
+    public boolean registerNPC(NPC npc)
+    {
+        if(npcs.containsKey(npc.id))
         {
-            Logger.error("NPC " + npc.name + " (id=" + npc.id + ", uuid=" + npc.uuid + ") already got an Interact Handler. Please remove the old one before adding this one", getClass().getName());
-            return;
+            Logger.warn("Cannot register a NPC with a duplicate ID (" + npc.id + "). Consider removing the old one.", NPCApi.class.getName());
+            return false;
         }
-        callbacks.put(npc.id, handler);
+        npcs.put(npc.id, npc);
+        return true;
     }
 
-    public void removeInteractHandler(NPC npc)
+    public void unregisterNpc(int npcId)
     {
-        removeInteractHandler(npc.id);
+        if(npcs.containsKey(npcId))
+        {
+            npcs.get(npcId).despawn();
+            npcs.remove(npcId);
+        }
     }
 
-    public void removeInteractHandler(int id)
+    public NPC getNpcById(int npcId)
     {
-        callbacks.remove(id);
+        return npcs.get(npcId);
+    }
+
+    public void unregisterAll(boolean unregisterHandler)
+    {
+        new HashMap<>(npcs).keySet().forEach(this::unregisterNpc);
+        if(unregisterHandler)
+        {
+            HandlerList.unregisterAll(listeners);
+        }
     }
 
     public static class NPC {
@@ -108,84 +144,115 @@ public class NPCApi implements Listener {
         private final String name;
         private final ApiProperty textures;
         private Location position;
-        private Directions direction;
+        private final double squaredTrackDistance;
+        private OnNPCInteract interactCallback;
+        private boolean isActive = false;
 
-        public NPC(@Nullable UUID uuid, String name, @Nullable ApiProperty textures, Location position, Directions direction, boolean spawn){
+        //verifier le monde, ajouter le interact callback, spawn le npc on join, etc...
+        public NPC(@Nullable UUID uuid, String name, @Nullable ApiProperty textures, Location position, double trackDistance, boolean isActive, OnNPCInteract interactCallback){
             this.id = EntityPackets.nextId();
             this.uuid = uuid == null ? UUID.randomUUID() : uuid;
             this.name = name;
             this.textures = textures;
-            this.position = position;
-            this.direction = direction;
-            if(spawn){
-                spawn();
-            }
+            this.position = position.clone();
+            this.squaredTrackDistance = trackDistance*trackDistance;
+            this.interactCallback = interactCallback;
+            if(isActive) setActive(true); //spawn the npc to all players in the world
         }
 
-        public int getId()
+        private Collection<? extends Player> affectedPlayers()
         {
+            return this.position.getWorld() == null ? List.of() : this.position.getWorld().getPlayers();
+        }
+
+        public int getId(){
             return this.id;
         }
 
+        public UUID getUuid() {
+            return this.uuid;
+        }
+
+        public String getName() {
+            return this.name;
+        }
+
         public Location getLocation(){
-            return position;
+            return position.clone();
         }
 
         public void setLocation(Location newLocation){
             this.position = newLocation;
-            respawn();
+            respawn(affectedPlayers());
         }
 
-        public Directions getDirection(){
-            return direction;
+        public void setInteractCallback(OnNPCInteract newCallback)
+        {
+            this.interactCallback = newCallback;
         }
 
-        public void setDirection(Directions newDirection){
-            this.direction = newDirection;
-            respawn();
+        protected boolean syncCallInteraction(Player player, ClickType clickType)
+        {
+            if(this.interactCallback == null || player == null || !isActive)
+                return false;
+            Bukkit.getScheduler().runTask(SpigotApi.getInstance(), ()->this.interactCallback.interact(this, player, clickType));
+            return true;
         }
 
-        public void spawn(Player player){
-            createPackets().send(player);
-            Bukkit.getScheduler().runTaskLater(SpigotApi.getInstance(), ()->EntityPackets.removeEntity(this.uuid).send(player),10L);
+        public double getSquaredTrackDistance(){
+            return this.squaredTrackDistance;
         }
 
-        public void spawn(){
-            createPackets().sendToOnline();
-            Bukkit.getScheduler().runTaskLater(SpigotApi.getInstance(), ()->EntityPackets.removeEntity(this.uuid).sendToOnline(),10L);
+        public void setActive(boolean isActive)
+        {
+            if(this.isActive == isActive)
+                return;
+            this.isActive = isActive;
+            if(isActive)
+                spawn(affectedPlayers());
+            else
+                despawn(affectedPlayers());
+        }
+        public boolean isActive() {
+            return this.isActive;
         }
 
-        public void despawn(Player player){
-            removePackets().send(player);
+        public void spawn(Collection<? extends Player> players){
+            createPackets().send(players);
+            Bukkit.getScheduler().runTaskLater(SpigotApi.getInstance(), ()->EntityPackets.removeEntity(this.uuid).send(players),10L);
         }
 
-        public void despawn(){
-            removePackets().sendToOnline();
+        public void despawn(Collection<? extends Player> players){
+            removePackets().send(players);
         }
 
-        public void respawn(Player player){
-            despawn(player);
-            spawn(player);
+        protected void despawn()
+        {
+            despawn(affectedPlayers());
         }
 
-        public void respawn(){
-            despawn();
-            spawn();
+        public void respawn(Collection<? extends Player> players){
+            despawn(players);
+            spawn(players);
         }
 
-        protected ApiPacket removePackets(){
+        public void lookAt(Player player, Location locationToLookAt)
+        {
+            Location npc = this.position.clone();
+            npc.setDirection(locationToLookAt.clone().subtract(npc).toVector());
+            EntityPackets.updateLook(id, npc.getYaw(), npc.getPitch(), npc.getYaw()).send(player);
+        }
+
+        private ApiPacket removePackets(){
             ApiPacket destroy = EntityPackets.destroyEntity(this.id);
             ApiPacket remove = EntityPackets.removeEntity(this.uuid);
             destroy.addAll(remove);
             return destroy;
         }
 
-        protected ApiPacket createPackets(){
-            int yaw = this.direction == Directions.OTHER ? (int)this.position.getYaw() : this.direction.getBodyYaw();
-            int pitch = this.direction == Directions.OTHER ? (int)this.position.getPitch() : this.direction.getPitch();
-
+        private ApiPacket createPackets(){
             ApiPacket addEntity = EntityPackets.addEntity(this.name, this.uuid, this.textures, false, -1, null);
-            ApiPacket spawnEntity = EntityPackets.spawnEntity(this.id, this.uuid, this.position, yaw, pitch, this.direction.getHeadYaw());
+            ApiPacket spawnEntity = EntityPackets.spawnEntity(this.id, this.uuid, this.position, 0.0f, 0.0f, 0.0f);
             ApiPacket updateSkin = EntityPackets.updateSkin(this.id);
 
             addEntity.addAll(spawnEntity);
@@ -205,6 +272,20 @@ public class NPCApi implements Listener {
         public int hashCode() {
             return Objects.hash(uuid, id, name);
         }
+
+        @Override
+        public String toString()
+        {
+            return "NPC{id="+this.id+
+                    ", uuid="+this.uuid+
+                    ", name="+this.name+
+                    ", world="+this.position.getWorld()+
+                    ", x="+this.position.getBlockX()+
+                    ", y="+this.position.getBlockY()+
+                    ", z="+this.position.getBlockZ()+
+                    ", active="+this.isActive+"}";
+        }
+
     }
 
 }

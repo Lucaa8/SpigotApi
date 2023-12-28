@@ -2,15 +2,10 @@ package ch.luca008.SpigotApi;
 
 import ch.luca008.SpigotApi.Api.*;
 import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
-import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public class SpigotApi extends JavaPlugin implements Listener {
+public class SpigotApi extends JavaPlugin {
 
     private static SpigotApi main;
     public static SpigotApi getInstance(){
@@ -35,29 +30,18 @@ public class SpigotApi extends JavaPlugin implements Listener {
         jsonApi = new JSONApi(getDataFolder());
         scoreboardApi = new ScoreboardAPI();
         nbttagApi = new NBTTagApi();
-        npcApi = new NPCApi();
+        npcApi = new NPCApi(); //does register listener
         promptApi = new PromptApi();
 
         Bukkit.getServer().getPluginManager().registerEvents(teamApi, this);
-        Bukkit.getServer().getPluginManager().registerEvents(npcApi, this);
-
-        //TODO: remove
-        Bukkit.getServer().getPluginManager().registerEvents(this, this);
-
-    }
-
-    @EventHandler
-    public void onJoin(PlayerJoinEvent e)
-    {
-
-        new NPCApi.NPC(null, "testnpc", null, e.getPlayer().getLocation(), NPCApi.Directions.NORTH, true);
 
     }
 
     public void onDisable(){
-        HandlerList.unregisterAll((Plugin) this);
-        teamApi.getTeams().forEach(t->t.sendDeletePacket(Bukkit.getOnlinePlayers().toArray(new Player[0])));
+        HandlerList.unregisterAll(this);
+        teamApi.getTeams().forEach(t->t.sendDeletePacket(Bukkit.getOnlinePlayers().toArray(new org.bukkit.entity.Player[0])));
         scoreboardApi.unregisterAll();
+        npcApi.unregisterAll(true);
     }
 
     public static MainApi getMainApi(){

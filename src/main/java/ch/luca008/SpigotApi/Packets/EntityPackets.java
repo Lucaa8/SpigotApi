@@ -25,6 +25,7 @@ public class EntityPackets
     private static final String REMOVE_ENTITY = "RemoveEntityInfoPacket";
     private static final String DESTROY_ENTITY = "DestroyEntityPacket";
     private static final String ENTITY_METADATA = "EntityMetaDataPacket";
+    private static final String ENTITY_LOOK = "EntityLook";
     private static final String IN_USE_ENTITY = "UseEntityPacket"; //PlayIn
     private static final String IN_USE_ENTITY_ACTION = IN_USE_ENTITY + "Action"; //PlayIn
     private static final String IN_USE_ENTITY_INTERACTION = IN_USE_ENTITY + "InteractionAction"; //PlayIn
@@ -48,7 +49,6 @@ public class EntityPackets
         String syncherPackage = "network.syncher";
         if(serverVersion == Version.MC_1_20){
             mappings.put(SPAWN_ENTITY, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "PacketPlayOutNamedEntitySpawn"), new HashMap<>(){{ put("id", "a"); put("uuid", "b"); put("x", "c"); put("y", "d"); put("z", "e"); put("yaw", "f"); put("pitch", "g"); }},  new HashMap<>()));
-            mappings.put(ENTITY_HEAD_ROT, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "PacketPlayOutEntityHeadRotation"), new HashMap<>() {{ put("id", "a"); put("head", "b"); }}, new HashMap<>()));
             type_player = null;
         } else {
             mappings.put(SPAWN_ENTITY, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "PacketPlayOutSpawnEntity"), new HashMap<>(){{ put("id", "c"); put("uuid", "d"); put("type", "e"); put("x", "f"); put("y", "g"); put("z", "h"); put("velX", "i"); put("velY", "j"); put("velZ", "k"); put("pitch", "l"); put("yaw", "m"); put("head", "n"); put("data", "o"); }}, new HashMap<>()));
@@ -84,6 +84,8 @@ public class EntityPackets
         mappings.put(DESTROY_ENTITY, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "PacketPlayOutEntityDestroy"), new HashMap<>(), new HashMap<>()));
         //Same
         mappings.put(ENTITY_METADATA, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "PacketPlayOutEntityMetadata"), new HashMap<>(), new HashMap<>()));
+        mappings.put(ENTITY_HEAD_ROT, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "PacketPlayOutEntityHeadRotation"), new HashMap<>() {{ put("id", "a"); put("head", "b"); }}, new HashMap<>()));
+        mappings.put(ENTITY_LOOK, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "PacketPlayOutEntity$PacketPlayOutEntityLook"), new HashMap<>(), new HashMap<>()));
         Class<?> PacketPlayInUseEntity = ReflectionApi.getNMSClass(protocolPackage, "PacketPlayInUseEntity");
         mappings.put(IN_USE_ENTITY, new ClassMapping(PacketPlayInUseEntity, new HashMap<>(){{ put("entityId", "a"); put("action", "b"); put("usingSecondaryAction", "c"); }}, new HashMap<>()));
         mappings.put(IN_USE_ENTITY_ACTION, new ClassMapping(ReflectionApi.getPrivateInnerClass(PacketPlayInUseEntity, "EnumEntityUseAction"), new HashMap<>(), new HashMap<>(){{ put("getType", "a"); }}));
@@ -174,6 +176,23 @@ public class EntityPackets
     public static ApiPacket updateSkin(int entityId)
     {
         return ApiPacket.create(mappings.get(ENTITY_METADATA).newInstance(new Class[]{int.class, List.class}, entityId, List.of(data_watcher)).packet());
+    }
+
+    public static ApiPacket updateLook(int entityId, float yaw, float pitch, float headYaw)
+    {
+        byte bYaw = convert.apply(yaw);
+        byte bPitch = convert.apply(pitch);
+        byte bHeadYaw = convert.apply(headYaw);
+
+        ObjectMapping packet1 = mappings.get(ENTITY_HEAD_ROT)
+                .unsafe_newInstance()
+                .set("id", entityId)
+                .set("head", bHeadYaw);
+
+        ObjectMapping packet2 = mappings.get(ENTITY_LOOK)
+                .newInstance(new Class[]{int.class, byte.class, byte.class, boolean.class}, entityId, bYaw, bPitch, false);
+
+        return ApiPacket.create(new Object[]{packet1.packet(), packet2.packet()});
     }
 
     public static Object[] getInteractionFromPacket(Object packet)
