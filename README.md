@@ -6,6 +6,15 @@ SpigotApi allows you to do some fancy things not fully supported by the standard
 Currently the SpigotApi only supports the 1.20 to 1.20.4 Spigot/Paper version. This is because attributes names can change from version to version and you cannot use it with others Minecraft versions. I will add the futures versions of Spigot/Paper when they appear, but I didnt plan to release SpigotApi for older versions.
 
 ## Features
+### Summary
+- **TeamAPI** - Create your custom teams and ranks with custom prefixes, suffixes, colors and more..
+- **ScoreboardApi** - Create multiples scoreboards with default values (placeholders), set them to your players and update them easily whenever you want!
+- **NPCApi** - Create basic NPCs which look at the player in game, put them skins, easy-to-setup interaction manager.
+- **PromptApi** - Open a sign to a player and wait for their response, do whatever you want with it inside a sync. callback.
+- **NBTTagApi** - Add NBTs on your items to retrieve them easily in inventories
+- **SnifferApi** - Listen to every packets a player receive
+- **JSONApi** - Store and read information easily in JSON instead of YAML
+  
 ### TeamAPI
 This API registers your teams on the server side and send them when a player connects to the server. With this implementation you can; \
 - Sort yours teams in the tab
@@ -104,3 +113,26 @@ Player player = e.getPlayer();
 SpigotApi.getScoreboardApi().setScoreboard(player, null); //null remove any scoreboard currently displayed with immediate changes (as you call this line, the player's scoreboard is gone)
 //or you can set another scoreboard's intern name instead of null and the scoreboard will switch
 ```
+
+### NPCApi
+This API allows you to create NPC quickly and easily. Change their position, set them a skin, track the player eyes and add a click listener on him! You can combine the TeamApi and this Api to put the NPCs on a team, to display prefixes, remove colisions, and so on..!
+
+NPC do spawn when the player joins the world. If he quits the world the NPC is destroyed on the client, and if he comes back then the NPC is recreated. Everything is handled for you! You just need to register the NPC once and voila! Even if you decide to spawn (despawn) a NPC after a player joined, the NPC will be created (destroyed) immediatly (the player do not need to change world/reconnect). You can even show/hide an already spawned NPC with a simple method call!
+
+Here are some examples of uses;
+1) Create a NPC
+```java
+Location spawn = new Location(Bukkit.getWorld("world"), 0.5f, 100.0f, 0.5f);
+NPCApi.OnNPCInteract clickHandler = (npc, player, clickType) -> {
+    if(clickType == ClickType.LEFT) {
+        player.sendMessage("§cHey!! Do not hurt me!");
+    } else { //right click
+        player.sendMessage("§eHello §6" + player.getName() + "§e, I am " + npc.getName() + " and I have a special quest for you!");
+    }
+};
+NPCApi.NPC myNPC = new NPCApi.NPC(UUID.randomUUID(), "Bob", NPCApi.getProperty("Luca008"), spawn, 10.0, true, clickHandler);
+SpigotApi.getNpcApi().registerNPC(myNPC);
+```
+
+![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/fd1356a0-92d1-4529-8409-bae6e70de742)
+
