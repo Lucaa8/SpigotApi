@@ -138,7 +138,7 @@ public class EntityPackets
         Object PacketPlayOutSpawnEntity = mappings.get(SPAWN_ENTITY).unsafe_newInstance()
                 .set("id", entityId).set("uuid", npc)
                 .set("type", type_player)
-                .set("x", location.getBlockX()+0.5f).set("y", location.getBlockY()*1.0f).set("z", location.getBlockZ()+0.5f)
+                .set("x", location.getX()).set("y", location.getY()).set("z", location.getZ())
                 .set("velX", 0).set("velY", 0).set("velZ", 0)
                 .set("yaw", convert.apply(yaw)).set("pitch", convert.apply(pitch)).set("head", convert.apply(headYaw))
                 .set("data", 0).packet();
