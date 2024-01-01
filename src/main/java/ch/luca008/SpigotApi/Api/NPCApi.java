@@ -182,8 +182,9 @@ public class NPCApi {
         }
 
         public void setLocation(Location newLocation){
-            this.position = newLocation;
-            respawn(affectedPlayers());
+            this.position = newLocation.clone();
+            if(isActive)
+                respawn(affectedPlayers());
         }
 
         public void setInteractCallback(OnNPCInteract newCallback)
@@ -199,8 +200,8 @@ public class NPCApi {
             return true;
         }
 
-        public double getSquaredTrackDistance(){
-            return this.squaredTrackDistance;
+        public double getTrackDistance(){
+            return Math.sqrt(this.squaredTrackDistance);
         }
 
         public void setActive(boolean isActive)
@@ -217,12 +218,12 @@ public class NPCApi {
             return this.isActive;
         }
 
-        public void spawn(Collection<? extends Player> players){
+        protected void spawn(Collection<? extends Player> players){
             createPackets().send(players);
             Bukkit.getScheduler().runTaskLater(SpigotApi.getInstance(), ()->EntityPackets.removeEntity(this.uuid).send(players),10L);
         }
 
-        public void despawn(Collection<? extends Player> players){
+        protected void despawn(Collection<? extends Player> players){
             removePackets().send(players);
         }
 
@@ -231,12 +232,12 @@ public class NPCApi {
             despawn(affectedPlayers());
         }
 
-        public void respawn(Collection<? extends Player> players){
+        protected void respawn(Collection<? extends Player> players){
             despawn(players);
             spawn(players);
         }
 
-        public void lookAt(Player player, Location locationToLookAt)
+        protected void lookAt(Player player, Location locationToLookAt)
         {
             Location npc = this.position.clone();
             npc.setDirection(locationToLookAt.clone().subtract(npc).toVector());
