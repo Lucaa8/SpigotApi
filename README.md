@@ -51,7 +51,7 @@ if(isRegistered){
 @EventHandler
 public void OnPlayerJoinSetTeam(PlayerJoinEvent e)
 {
-  SpigotApi.getTeamApi().addPlayer("red", e.getPlayer().getName());
+  SpigotApi.getTeamApi().addPlayer("red", e.getPlayer().getName(), true); //Check section 4) to learn more about the 3rd param
 }
 ```
 PS: The API does not save the player's team when he leaves! 
@@ -59,6 +59,22 @@ PS: The API does not save the player's team when he leaves!
 3) You can create a blue team, but if for some reason you want it to appear below the red team in the tab (by default the **b**lue will appear before **r**ed as the team are sorted by their ascii values). The TeamAPI handles that for you! Just set a sort order bigger than the red team and voila! (If you create a rank system, maybe keep 5-10 values between each team so you can add a new one later without the need to shift all the others)
    
 ![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/be3d4532-b1ed-4e53-b454-3db98592662d)
+
+4) Change or remove a player's team
+
+To remove a player from his team it's actually easy (If the player does not have any team then this line will be ignored silently)
+```java
+SpigotApi.getTeamApi().removePlayer(player.getName());
+```
+To change a player's team there are two ways to do it
+```java
+//1.1) You can remove the player from his current team
+SpigotApi.getTeamApi().removePlayer(player.getName());
+//1.2) Then you add it in another team without forcing it (if the 3rd param is false and the player is already in a team, this will fail and the player keeps his current team)
+SpigotApi.getTeamApi().addPlayer("blue", player.getName(), false);
+//2) Or you can force the team change with
+SpigotApi.getTeamApi().addPlayer("blue", player.getName(), true); //Which will remove the player from his current team if any and then add it in the blue team
+```
 
 ### ScoreboardAPI
 This API registers scoreboards and display them to players. This API is powerful thanks to *placeholders*. You can create your scoreboard's lines with some default values and then update each placeholder with a different value for each player, at any time, you can re-re-update the value! You can also change a player's scoreboard with immediate effect (he does not need to reconnect)
@@ -120,19 +136,58 @@ This API allows you to create NPC quickly and easily. Change their position, set
 NPC do spawn when the player joins the world. If he quits the world the NPC is destroyed on the client, and if he comes back then the NPC is recreated. Everything is handled for you! You just need to register the NPC once and voila! Even if you decide to spawn (despawn) a NPC after a player joined, the NPC will be created (destroyed) immediatly (the player do not need to change world/reconnect). You can even show/hide an already spawned NPC with a simple method call!
 
 Here are some examples of uses;
-1) Create a NPC
+1) Create a NPC and store his id for later use
 ```java
-Location spawn = new Location(Bukkit.getWorld("world"), 0.5f, 100.0f, 0.5f);
-NPCApi.OnNPCInteract clickHandler = (npc, player, clickType) -> {
-    if(clickType == ClickType.LEFT) {
-        player.sendMessage("§cHey!! Do not hurt me!");
-    } else { //right click
-        player.sendMessage("§eHello §6" + player.getName() + "§e, I am " + npc.getName() + " and I have a special quest for you!");
-    }
-};
-NPCApi.NPC myNPC = new NPCApi.NPC(UUID.randomUUID(), "Bob", NPCApi.getProperty("Luca008"), spawn, 10.0, true, clickHandler);
-SpigotApi.getNpcApi().registerNPC(myNPC);
+private int npcId = -1;
+public void onEnable()
+{
+    Location spawn = new Location(Bukkit.getWorld("world"), 0.5f, 100.0f, 0.5f);
+    NPCApi.OnNPCInteract clickHandler = (npc, player, clickType) -> {
+        if(clickType == ClickType.LEFT) {
+            player.sendMessage("§cHey!! Do not hurt me!");
+        } else { //right click
+            player.sendMessage("§eHello §6" + player.getName() + "§e, I am " + npc.getName() + " and I have a special quest for you!");
+        }
+    };
+    NPCApi.NPC myNPC = new NPCApi.NPC(UUID.randomUUID(), "Bob", NPCApi.getProperty("Luca008"), spawn, 10.0, true, clickHandler);
+    npcId = myNPC.getId();
+    SpigotApi.getNpcApi().registerNPC(myNPC);
+}
 ```
 
 ![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/fd1356a0-92d1-4529-8409-bae6e70de742)
+
+2) Get back your NPC later and hide it or change his location
+```java
+NPCApi.NPC myNPC = SpigotApi.getNpcApi().getNpcById(npcId);
+//myNPC.setActive(false); //Remove the NPC for all players
+myNPC.setLocation(myNPC.getLocation().add(1.2f, 0f, 0f)); //add 1.2 block to his x coordinate
+```
+You can change the NPC's location even if it's not active the change takes effect immediatly if you call NPC#getLocation(), and the NPC will be spawned at the new position
+
+![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/8a184de7-9266-4244-8abe-fef05352f28d)
+
+3) Add your NPC in a Team to display prefixes/suffixes and removing the collisions with him
+
+Those code blocks need to be executed only **once**, then you can move it, hide/show it and he will keep his team until his unregister! (Or until you remove it from his team)
+```java
+//Create the NPC team with the TeamAPI
+SpigotApi.getTeamApi().registerTeam(new TeamAPI.TeamBuilder("npc")
+    .setDisplayName("NPC")
+    .setPrefix("[NPC] ") //Set his prefix
+    .setSuffix(" §7(Sidequest)") //Set his suffix (Optional, here I display his quest type)
+    .setColor(PacketsUtils.ChatColor.YELLOW)
+    .setCollisions(TeamsPackets.Collisions.NEVER)
+    .create());
+```
+```java
+//Get your NPC and add it in the team! Soo easy!
+NPCApi.NPC myNPC = SpigotApi.getNpcApi().getNpcById(npcId);
+SpigotApi.getTeamApi().addPlayer("npc", myNPC.getName(), true);
+//SpigotApi.getTeamApi().removePlayer(myNPC.getName()); //To remove the NPC from his current team
+```
+
+![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/b0a4b4f4-afee-464a-9e05-7e0e3a6a3b1d)
+
+
 
