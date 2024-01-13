@@ -223,9 +223,13 @@ Let's edit the price now and then click on the done button (or hit the ESC keybi
 ![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/9a35a764-bc73-4160-bc5e-5ab024081b4a)
 
 We can see that something happened, it's the callback, which we skipped before who did that. So we can come back to it and check why it happened. \
-You have 3 paramters in the callback, cancelled, lines and line.
+You have 3 parameters in the callback, cancelled, lines and line.
 - __cancelled__ is a boolean which tells you if the player wrote the cancel command on the first line or not. In most cases you want to leave and do nothing if the player cancelled the prompt.
 - __lines__ is a string array of length 4. This array contains the text of each separate row of the sign. In our example `lines[0]` would be `Item1 price`, etc.. And it does not contain any line feed nor carriage return at the end. (always of length 4, if the last line is empty on the sign, then `string[3]` is `""`)
 - __line__ is a somewhat special string. It contains the four rows appended together but without space or any special character between rows. It means you can not tell which part of the string was on which row. It's for sentence/long words purposes. In our example it would be `Item1 pricePrice:130.3'exit' on the firstline to cancel`
+
+In our case, we return if the prompt is cancelled (player wrote "exit" on the first line), then we get the float value on the second line by splitting at ":" and we set it inside the config if its a "valid" price (positive and not free). We then send the message you can see on the image above which confirm to the player that his change has been successful. 
+
+It's a very basic example to showcase this API, in a real situation you would check if the second line actually contains ":" before splitting, put the float parsing inside try catch, etc... Do not trust user input!
 
 ### NBTTagApi 
