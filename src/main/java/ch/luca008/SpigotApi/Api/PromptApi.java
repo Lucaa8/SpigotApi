@@ -8,6 +8,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -18,9 +19,6 @@ public class PromptApi {
         void getInput(boolean isCancelled, String[] asMultipleLines, String asSingleLine);
     }
 
-    public String cancelCmd = "exit";
-    public DyeColor promptColor = DyeColor.WHITE;
-
     private final List<UUID> currentPrompts = new ArrayList<>();
 
     /**
@@ -29,10 +27,12 @@ public class PromptApi {
      * The player can cancel all changes by typing the cancel cmd specified inside this api on the first line of the sign.
      * @param player The player you want to open the sign
      * @param callback The code you want to be executed when the player hits Done or closes the sign. The cancel argument is set to true when the first line on the sign is equals (ignore case) to the {@link #cancelCmd} attribute.
+     * @param linesColor The color the lines will be displayed on the sign (default when null: black)
+     * @param exitCmd A string which will cancel the prompt (second param of callback will be false) if the player writes it on the first sign's line. (can be null if you do not need a cancellable)
      * @param initialLines An array (size 4 max) with the lines you want to show to the player when the sign opens. You can set a blank line with an empty string. If the size is less than 4 then the array will be filled with blank lines.
      * @return Returns true if the player has been prompted with your lines and your callback. If the player is already in an old prompt then returns false.
      */
-    public boolean promptPlayer(Player player, PromptCallback callback, String...initialLines) {
+    public boolean promptPlayer(Player player, PromptCallback callback, @Nullable DyeColor linesColor, @Nullable String exitCmd, String...initialLines) {
 
         final UUID id = player.getUniqueId();
 
@@ -62,7 +62,7 @@ public class PromptApi {
 
                 //We notify the caller that the player did finish to edit the sign
                 //Because the packets are received asynchronously we need to resync with bukkit to avoid async errors inside the callback.
-                Bukkit.getScheduler().runTask(SpigotApi.getInstance(), ()->callback.getInput(lines[0].equalsIgnoreCase(cancelCmd), lines, line));
+                Bukkit.getScheduler().runTask(SpigotApi.getInstance(), ()->callback.getInput(lines[0].equalsIgnoreCase(exitCmd), lines, line));
 
                 //We remove the player from the currently prompted players list as we have finished
                 currentPrompts.remove(id);
@@ -71,13 +71,13 @@ public class PromptApi {
             }
         }));
 
-        prompt(player, initialLines);
+        prompt(player, linesColor==null?DyeColor.BLACK:linesColor, initialLines);
 
         return true;
 
     }
 
-    private void prompt(Player player, String...initialLines){
+    private void prompt(Player player, DyeColor color, String...initialLines){
 
         if(initialLines==null||initialLines.length>4){
             initialLines = new String[]{"","","",""};
@@ -98,7 +98,7 @@ public class PromptApi {
         Location l = player.getLocation();
 
         player.sendBlockChange(l, Material.OAK_SIGN.createBlockData());
-        player.sendSignChange(l, initialLines, promptColor); //color does not seem to work on 1.20.2 only, text is brown even if I put white. 1.20.1 and 1.20.4 look like ok, weird.
+        player.sendSignChange(l, initialLines, color); //color does not seem to work on 1.20.2 only, text is brown even if I put white. 1.20.1 and 1.20.4 look like ok, weird.
 
         SignPackets.openSign(l).send(player);
 
