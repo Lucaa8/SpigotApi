@@ -64,7 +64,7 @@ public class NBTTagApi {
     }
 
     public Object getNMSItem(ItemStack bukkitItem) {
-        return ReflectionApi.invoke(OBC_ITEM_STACK, null, "asNMSCopy", new Class[]{bukkitItem.getClass()}, bukkitItem);
+        return ReflectionApi.invoke(OBC_ITEM_STACK, null, "asNMSCopy", new Class[]{org.bukkit.inventory.ItemStack.class}, bukkitItem);
     }
 
     public ItemStack getBukkitItem(Object nmsItem) {
