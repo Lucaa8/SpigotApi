@@ -233,3 +233,31 @@ In our case, we return if the prompt is cancelled (player wrote "exit" on the fi
 It's a very basic example to showcase this API, in a real situation you would check if the second line actually contains ":" before splitting, put the float parsing inside try catch, etc... Do not trust user input!
 
 ### NBTTagApi 
+This API does write and read any NBT value in your items. What's a NBT ? _Named Binary Tag_ is the way Minecraft stores informations inside an item. Have you considered how Minecraft stores the durability of an item ? The answer is NBT! But did you know you can take advantage of those to store whatever you want? If you want to open an interactive inventory to a player and find in no time on which item the player clicked, NBTTagAPI is for you! If you want to add any information inside an item before giving it to the player, NBTTagAPI is for you!
+
+We'll find out how to use it right now.
+1) Create an item and stores informations inside it
+```java
+@EventHandler
+public void onPlayerJoin(PlayerJoinEvent e)
+{
+    Player player = e.getPlayer();
+    ItemStack stone = new ItemStack(Material.STONE, 1);
+
+    NBTTagApi.NBTItem nbtStone = SpigotApi.getNBTTagApi().getNBT(stone);
+    nbtStone.setTag("Owner", player.getName()).setTag("CreatedAt", System.currentTimeMillis());
+
+    stone = nbtStone.getBukkitItem();
+    player.getInventory().addItem(stone);
+}
+```
+As you can see, the `setTag` method of `NBTItem` is a builder so you can chain statements. \
+When you are done adding your tags you need to assign back the itemstack (`stone = nbtStone.getBukkitItem();`) or it wont work. Yes it's a little bit boring and you might forget it. The builder is here for you. You can chain everything!
+```java
+ItemStack stone = SpigotApi.getNBTTagApi().getNBT(
+        new ItemStack(Material.STONE, 1)
+)
+.setTag("Owner", player.getName())
+.setTag("CreatedAt", System.currentTimeMillis())
+.getBukkitItem();
+```
