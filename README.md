@@ -275,6 +275,8 @@ if(nbtItem.hasTag("Owner"))
 else
     player.sendMessage("§cThis item has no owner!");
 ```
+![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/7ef9e4e9-8ade-4fb7-8c76-acf2e230a335)
+
 
 3) Custom heads
 With this API you can easily create custom player heads. You can get the textures from [Minecraft Heads](https://minecraft-heads.com/custom-heads) website. Just click on your favorite custom head, find the "For Developers:" section and copy the value block. Then execute this code
