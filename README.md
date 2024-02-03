@@ -30,7 +30,8 @@ But you can't;
 - Toggle friendly fire and see invisible friends properties (those settings are managed server side so it would be a pain to re-code it)
 
 Here are some examples of uses;
-1) Create a Team (maybe in your plugin enable)
+#### Create a Team
+For example in your plugin onEnable
 ```java
 TeamAPI.Team apiTeam = new TeamAPI.TeamBuilder("red")
         .setDisplayName("Red")
@@ -46,7 +47,8 @@ if(isRegistered){
     System.err.println("The api failed to register your team");
 }
 ```
-2) Then set a player inside this team when he joins
+#### Add players in the Team
+For example when he joins the server
 ```java
 @EventHandler
 public void OnPlayerJoinSetTeam(PlayerJoinEvent e)
@@ -56,11 +58,12 @@ public void OnPlayerJoinSetTeam(PlayerJoinEvent e)
 ```
 PS: The API does not save the player's team when he leaves! 
 
-3) You can create a blue team, but if for some reason you want it to appear below the red team in the tab (by default the **b**lue will appear before **r**ed as the team are sorted by their ascii values). The TeamAPI handles that for you! Just set a sort order bigger than the red team and voila! (If you create a rank system, maybe keep 5-10 values between each team so you can add a new one later without the need to shift all the others)
+#### Tab order of Teams
+You can create a blue team, but if for some reason you want it to appear below the red team in the tab (by default the **b**lue will appear before **r**ed as the team are sorted by their ascii values). The TeamAPI handles that for you! Just set a sort order bigger than the red team and voila! (If you create a rank system, maybe keep 5-10 values between each team so you can add a new one later without the need to shift all the others)
    
 ![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/be3d4532-b1ed-4e53-b454-3db98592662d)
 
-4) Change or remove a player's team
+#### Change or remove a player's team
 
 To remove a player from his team it's actually easy (If the player does not have any team then this line will be ignored silently)
 ```java
@@ -79,8 +82,7 @@ SpigotApi.getTeamApi().addPlayer("blue", player.getName(), true); //Which will r
 ### ScoreboardAPI
 This API registers scoreboards and display them to players. This API is powerful thanks to *placeholders*. You can create your scoreboard's lines with some default values and then update each placeholder with a different value for each player, at any time, you can re-re-update the value! You can also change a player's scoreboard with immediate effect (he does not need to reconnect)
 
-Here are some examples of uses;
-1) Register a new scoreboard
+#### Register a new scoreboard
 ```java
 ArrayList<ScoreboardLine> lines = new LinesBuilder()
         .add("empty1", 0, "§0")
@@ -94,7 +96,7 @@ SpigotApi.getScoreboardApi().registerScoreboard("defaultBoard", "§bMyServer", l
 In 1.20.2 and newer you can set blank lines with an empty string (i.e: .add("empty1", 0, "").add("empty2", 2, "")). This is because from the 1.20.2 NMS changed how scoreboard is displaying scores internally. The unique name of the score and the formatted text are two separate values. \
 "player" and "money" are now placeholders (dont worry you can still write *money* without the {} and the value wont be touched) which you can edit later on.
 
-2) Set the scoreboard to a player and update the placeholders
+#### Set the scoreboard to a player and update the placeholders
 ```java
 @EventHandler
 public void OnPlayerJoinSetTeam(PlayerJoinEvent e)
@@ -110,7 +112,7 @@ Like the TeamAPI, the ScoreboardAPI does not save the current player's scoreboar
 
 ![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/099c0df6-9344-4b52-9b6d-d6a8b16b3b2b)
 
-3) Update the placeholders later on
+#### Update the placeholders later on
 ```java
 @EventHandler
 public void MyCustomMoneyEvent(PlayerMoneyChangeEvent e)
@@ -123,7 +125,7 @@ public void MyCustomMoneyEvent(PlayerMoneyChangeEvent e)
     }
 }
 ```
-4) Remove or change the entire scoreboard
+#### Remove or change the entire scoreboard
 ```java
 Player player = e.getPlayer();
 SpigotApi.getScoreboardApi().setScoreboard(player, null); //null remove any scoreboard currently displayed with immediate changes (as you call this line, the player's scoreboard is gone)
@@ -135,8 +137,8 @@ This API allows you to create NPC quickly and easily. Change their position, set
 
 NPC do spawn when the player joins the world. If he quits the world the NPC is destroyed on the client, and if he comes back then the NPC is recreated. Everything is handled for you! You just need to register the NPC once and voila! Even if you decide to spawn (despawn) a NPC after a player joined, the NPC will be created (destroyed) immediatly (the player do not need to change world/reconnect). You can even show/hide an already spawned NPC with a simple method call!
 
-Here are some examples of uses;
-1) Create a NPC and store his id for later use
+#### Create a NPC
+You need to store his id for later use (`npcId`)
 ```java
 private int npcId = -1;
 public void onEnable()
@@ -157,7 +159,8 @@ public void onEnable()
 
 ![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/fd1356a0-92d1-4529-8409-bae6e70de742)
 
-2) Get back your NPC later and hide it or change his location
+#### Get back your NPC
+With the id you stored, you can get back your NPC at any time and hide it or change his location for example
 ```java
 NPCApi.NPC myNPC = SpigotApi.getNpcApi().getNpcById(npcId);
 //myNPC.setActive(false); //Remove the NPC for all players
@@ -167,9 +170,9 @@ You can change the NPC's location even if it's not active the change takes effec
 
 ![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/8a184de7-9266-4244-8abe-fef05352f28d)
 
-3) Add your NPC in a Team to display prefixes/suffixes and removing the collisions with him
-
-Those code blocks need to be executed only **once**, then you can move it, hide/show it and he will keep his team until his unregister! (Or until you remove it from his team)
+#### Add your NPC in a Team
+You can add your NPC in a team to display prefixes/suffixes or removing the collisions with him. \
+Those code blocks need to be executed only **once**, then you can move it, hide/show it and he will keep his team until he's unregistered! (Or until you remove it from his team)
 ```java
 //Create the NPC team with the TeamAPI
 SpigotApi.getTeamApi().registerTeam(new TeamAPI.TeamBuilder("npc")
@@ -223,10 +226,10 @@ Let's edit the price now and then click on the done button (or hit the ESC keybi
 ![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/9a35a764-bc73-4160-bc5e-5ab024081b4a)
 
 We can see that something happened, it's the callback, which we skipped before who did that. So we can come back to it and check why it happened. \
-You have 3 parameters in the callback, cancelled, lines and line.
-- __cancelled__ is a boolean which tells you if the player wrote the cancel command on the first line or not. In most cases you want to leave and do nothing if the player cancelled the prompt.
-- __lines__ is a string array of length 4. This array contains the text of each separate row of the sign. In our example `lines[0]` would be `Item1 price`, etc.. And it does not contain any line feed nor carriage return at the end. (always of length 4, if the last line is empty on the sign, then `string[3]` is `""`)
-- __line__ is a somewhat special string. It contains the four rows appended together but without space or any special character between rows. It means you can not tell which part of the string was on which row. It's for sentence/long words purposes. In our example it would be `Item1 pricePrice:130.3'exit' on the firstline to cancel`
+You have 3 parameters in the callback, cancelled, lines and line; \
+&nbsp;&nbsp;&nbsp;**cancelled** is a boolean which tells you if the player wrote the cancel command on the first line or not. In most cases you want to leave and do nothing if the player cancelled the prompt. \
+&nbsp;&nbsp;&nbsp;**lines** is a string array of length 4. This array contains the text of each separate row of the sign. In our example `lines[0]` would be `Item1 price`, etc.. And it does not contain any line feed nor carriage return at the end. (always of length 4, if the last line is empty on the sign, then `string[3]` is `""`) \
+&nbsp;&nbsp;&nbsp;**line** is a somewhat special string. It contains the four rows appended together but without space or any special character between rows. It means you can not tell which part of the string was on which row. It's for sentence/long words purposes. In our example it would be `Item1 pricePrice:130.3'exit' on the firstline to cancel`
 
 In our case, we return if the prompt is cancelled (player wrote "exit" on the first line), then we get the float value on the second line by splitting at ":" and we set it inside the config if its a "valid" price (positive and not free). We then send the message you can see on the image above which confirm to the player that his change has been successful. 
 
@@ -237,7 +240,7 @@ This API does write and read any NBT value in your items. \
 What's a NBT ? _Named Binary Tag_ is the way Minecraft stores informations inside an item. Have you ever considered how Minecraft stores the durability of an item ? The answer is NBT! But did you know you can take advantage of those to store whatever you want? If you want to open an interactive inventory to a player and find in no time on which item the player clicked, NBTTagAPI is for you! If you want to add any information inside an item before giving it to the player, NBTTagAPI is also for you!
 
 We'll find out how to use it right now.
-1) Create an item and stores informations inside it
+#### Create an item and stores information inside it
 ```java
 @EventHandler
 public void onPlayerJoin(PlayerJoinEvent e)
@@ -253,7 +256,7 @@ public void onPlayerJoin(PlayerJoinEvent e)
 }
 ```
 As you can see, the `setTag` method of `NBTItem` is a builder so you can chain statements. \
-Whenever you're done adding your tags you need to assign back the itemstack (`stone = nbtStone.getBukkitItem();`) or it wont work. Yes it's a little bit boring and you might forget it. The builder is here for you. You can chain everything!
+Whenever you're done adding your tags you need to assign back the itemstack `stone = nbtStone.getBukkitItem()` or it wont work. Yes it's a little bit boring and you might forget it. The builder is here for you. You can chain everything!
 ```java
 ItemStack stone = SpigotApi.getNBTTagApi().getNBT(
         new ItemStack(Material.STONE, 1)
@@ -264,7 +267,7 @@ ItemStack stone = SpigotApi.getNBTTagApi().getNBT(
 ```
 ![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/bf36d03f-c964-441b-b780-ddb274383cc4)
 
-2) Get back the information you stored
+#### Get back the information you stored
 ```java
 Player player = Bukkit.getPlayer("Luca008");
 ItemStack retrieveItem = player.getInventory().getItemInMainHand();
@@ -277,8 +280,7 @@ else
 ```
 ![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/7ef9e4e9-8ade-4fb7-8c76-acf2e230a335)
 
-
-3) Custom heads
+#### Custom heads
 With this API you can easily create custom player heads. You can get the textures from [Minecraft Heads](https://minecraft-heads.com/custom-heads) website. Just click on your favorite custom head, find the "For Developers:" section and copy the value block. Then execute this code
 ```java
 ItemStack head = new ItemStack(Material.PLAYER_HEAD, 1);
@@ -290,5 +292,7 @@ nbtHead.addSkullTexture("Someone", value);
 head = nbtHead.getBukkitItem();
 player.getInventory().addItem(head);
 ```
+(If you want another name for the skull, you'll need to add an item meta) \
 ![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/6849bd1c-c652-4313-a0ff-474a446ab81b)
-(If you want another name for the skull, you'll need to add an item meta)
+
+### SnifferApi
