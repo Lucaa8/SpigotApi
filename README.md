@@ -14,6 +14,7 @@ Currently the SpigotApi only supports the 1.20 to 1.20.4 Spigot/Paper version. T
 - **NBTTagApi** - Add NBTs on your items to retrieve them easily in inventories
 - **SnifferApi** - Listen to every packets a player receive
 - **JSONApi** - Store and read information easily in JSON instead of YAML
+- **Items** - An unique way to create, customize, compare and store items easily without YAML or NBT problems.
   
 ### TeamAPI
 This API registers your teams on the server side and send them when a player connects to the server. With this implementation you can; \
@@ -337,9 +338,9 @@ MainApi.PacketReceived callback = (packet, cancel) -> {
 };
 ```
 In this example, I'm using a NULL terminator like in C, but you can put anything you want. Then I create a `PacketPlayOutCloseWindow` and send it to the player so that the anvil window is closed. Then I send to the player the text he wrote inside the anvil, minus de NULL terminator.
-![snifferapi](https://github.com/Lucaa8/SpigotApi/assets/47627900/c1d36c84-1710-451f-b66b-27304585abff)
+![snifferapi](https://github.com/Lucaa8/SpigotApi/assets/47627900/c1d36c84-1710-451f-b66b-27304585abff) \
+In real scenarios you would open an anvil window with your own packet and ID, put an item inside the first slot, set a message in the text field, etc... But here the goal was to show how to use the SnifferAPI and not how to use _NMS_.
 
-![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/2479a4bd-529b-41ad-9d9f-6891ff32c09e)
-When 
-![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/6ec66f34-1aa2-4993-bc21-ae97669c8df8)
+### JSONApi
 
+### Items
