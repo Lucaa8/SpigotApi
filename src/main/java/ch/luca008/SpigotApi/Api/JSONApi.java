@@ -1,6 +1,7 @@
 package ch.luca008.SpigotApi.Api;
 
 import ch.luca008.SpigotApi.SpigotApi;
+import ch.luca008.SpigotApi.Utils.Logger;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParser;
 import org.json.simple.JSONArray;
@@ -133,8 +134,25 @@ public class JSONApi {
             this.json = json;
         }
 
+        private JSONObject _write(JSONObject json, String key, Object value){
+            if(!key.contains(".")) {
+                json.put(key, value);
+                return json;
+            }
+            String currentKey = key.split("\\.")[0];
+            String nextKeys = key.substring(key.indexOf(".")+1);
+            Object next = json.getOrDefault(currentKey, new JSONObject());
+            if(!(next instanceof JSONObject jnext)){
+                Logger.error("Subkey \"" + currentKey + "\" in the keys chain \"" + key + "\" was not a JSONObject.", getClass().getName());
+                return null;
+            }
+            if(!json.containsKey(currentKey))
+                json.put(currentKey, jnext);
+            return _write(jnext, nextKeys, value);
+        }
+
         public JSONWriter write(String key, Object value){
-            json.put(key, value);
+            _write(this.json, key, value);
             return this;
         }
 
@@ -145,7 +163,7 @@ public class JSONApi {
         public JSONWriter writeArray(String key, Object[] array){
             JSONArray jarr = new JSONArray();
             Collections.addAll(jarr, array);
-            json.put(key, jarr);
+            _write(this.json, key, jarr);
             return this;
         }
 
