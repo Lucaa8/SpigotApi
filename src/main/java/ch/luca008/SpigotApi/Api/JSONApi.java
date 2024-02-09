@@ -134,6 +134,7 @@ public class JSONApi {
             this.json = json;
         }
 
+        //This method recursively create all json objects if they does not exist. When the deepest key is reached, the value is written.
         private JSONObject _write(JSONObject json, String key, Object value){
             if(!key.contains(".")) {
                 json.put(key, value);
