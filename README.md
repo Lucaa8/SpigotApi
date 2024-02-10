@@ -344,9 +344,9 @@ In real scenarios you would open an anvil window with your own packet and ID, pu
 ### JSONApi
 With this API you can write and read basic information inside JSON files. The API let you chain keys to write inside any deeper JSON Object without the need to create section or whatever like with the Bukkit YAML methods.
 #### Writer
-The Writer is used to store information inside a JSON Object and then write it in any file. **All the directories to the desired file need to exist.** You can start a writer from an existing JSONObject (JSON simple library) or an empty JSON.
+The Writer is used to store information inside a JSON Object and then write it in any file. **All the directories to the desired file need to exist.** You can start a writer from an existing JSONObject ([JSON simple](https://code.google.com/archive/p/json-simple/) library) or an empty JSON.
 ```java
-JSONApi.JSONWriter writer = SpigotApi.getJSONApi().getWriter(null);
+JSONApi.JSONWriter writer = SpigotApi.getJSONApi().getWriter(null); //Replace null with a JSONObject instance if you want a writer from an existing JSON.
 writer.write("Name", "Luca008")
     .write("Health", 12)
     .writeArray("Description", List.of("Line1", "Line2", 3, 4)) //List<Object> later replaced by JSONArray
