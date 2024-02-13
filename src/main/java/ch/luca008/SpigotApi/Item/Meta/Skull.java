@@ -49,6 +49,7 @@ public class Skull implements Meta{
                 SkullMeta sm = (SkullMeta) item.getItemMeta();
                 if(sm.hasOwner()){
                     String name = sm.getOwningPlayer().getName();
+                    if(name == null && sm.getOwnerProfile() != null) name = sm.getOwnerProfile().getName();
                     return name != null && name.equals(owner);
                 }
             }
