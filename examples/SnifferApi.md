@@ -41,6 +41,6 @@ MainApi.PacketReceived callback = (packet, cancel) -> {
 ```
 In this example, I'm using a NULL terminator like in C, but you can put anything you want. Then I create a `PacketPlayOutCloseWindow` and send it to the player so that the anvil window is closed. Then I send to the player the text he wrote inside the anvil, minus de NULL terminator.
 
-[snifferapi](https://github.com/Lucaa8/SpigotApi/assets/47627900/09d6a5a0-d0c7-445f-b749-7decb00b956f) \
+![snifferapi](https://github.com/Lucaa8/SpigotApi/assets/47627900/09d6a5a0-d0c7-445f-b749-7decb00b956f)
 
 In real scenarios you would open an anvil window with your own packet and ID, put an item inside the first slot, set a message in the text field, etc... But here the goal was to show how to use the SnifferAPI and not how to use _NMS_.
