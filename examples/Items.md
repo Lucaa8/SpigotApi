@@ -16,10 +16,41 @@ The "Base Meta" is embed inside the SpigotApi "Item" object. Those basic itemmet
 - If invulnerable or not
 
 ### UID
-Some text
+The Unique ID of an Item is optionnal. You would use it if you want to reconize the itemstack later on maybe in an inventory click event. You can store a hidden unique name (string) inside the item that players cant see. It's stored as NBT and you can then get back this NBT with the [NBTagApi](https://github.com/Lucaa8/SpigotApi/blob/master/examples/NBTTagApi.md).
+```java
+@EventHandler
+public void OnInventoryClick(InventoryClickEvent e){
+    ItemStack clicked = e.getCurrentItem();
+    if(clicked == null || clicked.getType() == Material.AIR)
+        return;
+    NBTTagApi.NBTItem item = SpigotApi.getNBTTagApi().getNBT(clicked);
+    if(item.hasTag("UUID") && item.getString("UUID").equals("my_custom_item")){
+        //do stuff
+    }
+}
+```
+With this, you can check the item clicked without hardcoding the Display Name or something like this.
+
+### Enchantments and Attributes
+SpigotApi has is own way to create/store attributes and enchants so they can be written as JSON with the rest of the item's meta. For this reason, you'll need to use the custom classes [Enchant.java](https://github.com/Lucaa8/SpigotApi/blob/master/src/main/java/ch/luca008/SpigotApi/Item/Enchant.java) and [ItemAttribute.java](https://github.com/Lucaa8/SpigotApi/blob/master/src/main/java/ch/luca008/SpigotApi/Item/ItemAttribute.java) of SpigotApi.
+
+### ItemBuilder
+Because there is a lot of meta attributes, it would be annoying to create each item with a constructor. It's for this reason that an ItemBuilder has been created to build any item without the nood to give every attribute. See the [Example](#example) section to learn how to use it.
+
+### Give (with or without player) or Drop (without nbt?)
+How to give or drop the item (explain the difference between toitemstack(s)(amount, <player>?) and the drop and drop without nbt (why?)
 
 ### Example
+Base meta item creation example and then drop/give example
 [item_sword](https://github.com/Lucaa8/SpigotApi/assets/47627900/0c894b46-9568-42b7-ad97-e425dc8639ed)
 
+## Potion Meta
+just a quick description and then paste the example
 
-## Drop without nbt?
+## Leather Color Meta
+
+## Skull Meta
+
+## Book Meta
+
+## Tropical Fish Meta
