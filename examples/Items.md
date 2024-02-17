@@ -55,15 +55,64 @@ ItemStack[] itemStacks1 = item.toItemStacks(128, player);
 ItemStack[] itemStacks2 = item.toItemStacks(32); //ok but the array will contain only 1 entry (itemStacks2[0])
 //Give until the player's inventory is full then drop on the ground at player's location
 item.giveOrDrop(player, 128);
-item.giveOrDopWithoutNBT(player, 128);
+item.giveOrDropWithoutNBT(player, 128);
 ```
 
 ### Example
-Base meta item creation example and then drop/give example
+Here a small example to teach you how to use the item builder and then the conversion to itemstack.
+```java
+ItemAttribute attack_speed = new ItemAttribute(
+        Attribute.GENERIC_ATTACK_SPEED,
+        "attack_speed",
+        10.5, //amount
+        AttributeModifier.Operation.ADD_NUMBER,
+        EquipmentSlot.HAND //optional (can be set to null, if null then attribute apply on each slot)
+);
+
+Item item = new ItemBuilder()
+        .setUid("custom_sword")
+        .setMaterial(Material.DIAMOND_SWORD)
+        .setName("§bCustom Sword")
+        .setLore(List.of("§aLore line 1", "§aLore line 2"))
+        .setFlags(List.of(ItemFlag.HIDE_ATTRIBUTES))
+        .setEnchantList(List.of(new Enchant(Enchantment.FIRE_ASPECT, 1), new Enchant(Enchantment.DAMAGE_ALL, 3)))
+        .setAttributes(List.of(attack_speed))
+        .setDamage(500) //setDamage may lead to confusion bc in fact the sword will have 500/1561 durability. 
+        //.setCustomData(3) //if you're using custom texture pack then you can change the texture of this item with this number
+        .setRepairCost(15) //base repair cost
+        .createItem();
+
+ItemStack itemstack = item.toItemStack(1);
+//or
+item.giveOrDrop(player, 1); //you would use giveOrDrop and not giveOrDropWithoutNBT because you would lose all the enchants, durability, etc..
+```
+For clarity and keep it "simple" to read I put the item attribute creation outside of the builder but you could put it inside.
+
 [item_sword](https://github.com/Lucaa8/SpigotApi/assets/47627900/0c894b46-9568-42b7-ad97-e425dc8639ed)
 
+You can clearly see that the above meta is present on this sword. The item's attribute (attack speed) is hidden on the sword but when swinging it's possible to see that the timer reset way more quicker than a normal sword. The sword got the 500/1561 durability, etc...
+
+![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/2c9a8e43-134c-48ec-a225-70601715eee7)
+
+In this picture we can see the base repair cost was indeed 15 but +1 for every diamond so it increased to 17.
+
+
 ## Potion Meta
-just a quick description and then paste the example
+This custom potion meta let you add effects on your potion material in one single line of code. It can be used with POTION, SPLASH_POTION and LINGERING_POTION material.
+```java
+Item potion = new ItemBuilder()
+        .setMaterial(Material.LINGERING_POTION)
+        .setName("§cThe Witch's Potion")
+        .setMeta(new Potion(
+                Potion.MainEffect.STRONG_SWIFTNESS, //Main effect, can be null (it will be UNCRAFTABLE and have no effect)
+                List.of(
+                    new PotionEffect(PotionEffectType.BLINDNESS, 100, 0), //type, duration (in ticks, 100 means 5secs), amplifier(level)
+                    new PotionEffect(PotionEffectType.FAST_DIGGING, 100, 2)
+                ), //A list of custom effects (you can set null to the main effect and add your(s) custom effect(s) here as main effects are not customisable)
+                Color.BLACK)
+        )
+        .createItem();
+```
 
 ## Leather Color Meta
 
@@ -72,3 +121,5 @@ just a quick description and then paste the example
 ## Book Meta
 
 ## Tropical Fish Meta
+
+## Storing your items
