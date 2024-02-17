@@ -37,8 +37,26 @@ SpigotApi has is own way to create/store attributes and enchants so they can be 
 ### ItemBuilder
 Because there is a lot of meta attributes, it would be annoying to create each item with a constructor. It's for this reason that an ItemBuilder has been created to build any item without the nood to give every attribute. See the [Example](#example) section to learn how to use it.
 
-### Give (with or without player) or Drop (without nbt?)
-How to give or drop the item (explain the difference between toitemstack(s)(amount, <player>?) and the drop and drop without nbt (why?)
+### Give or Drop
+In the Item object there are some helpers to create the bukkit itemstack corresponding to your Item. In these methods you can specify how many of this itemstack you want to give and also to which player. You'll see later in this file that you can create items with [skull meta](#skull-meta) for example, and you can create a dynamic meta which adapts to the player who will receive this item. You'll also be able to give directly the item to any player. The method will check if this player can hold the specified amount and if not will drop the remaining items on the ground on the player's location.
+
+But there's a problem with the potential NBTs (Item Meta) you put inside the item (maybe display name, lore, etc...) because those are lost when a block is placed. If they are broken then picked up they won't stack with the original itemstack because their NBT now differ. To avoid that, you would keep the NBT (Item Meta) on items like swords, armors, etc... but remove it from blocks that may be placed and broke. A method let you give itemstacks without NBTs to avoid this problem.
+
+```java
+Item item = ...;
+Player player = ...;
+//With the Item#toItemStack(amount<, player>) the amount is max 64. (1 stack of 64)
+ItemStack itemStack = item.toItemStack(32);
+ItemStack itemStack1 = item.toItemStack(64, player);
+//With the Item#toItemStacks(amount<, player>) the amount can be greater than 64.
+//E.g if you pass amount=129 then you would get the 2 first array entries with 1 stack of 64 each and a third entry with 1 stack of 1
+ItemStack[] itemStacks = item.toItemStacks(129);
+ItemStack[] itemStacks1 = item.toItemStacks(128, player);
+ItemStack[] itemStacks2 = item.toItemStacks(32); //ok but the array will contain only 1 entry (itemStacks2[0])
+//Give until the player's inventory is full then drop on the ground at player's location
+item.giveOrDrop(player, 128);
+item.giveOrDopWithoutNBT(player, 128);
+```
 
 ### Example
 Base meta item creation example and then drop/give example
