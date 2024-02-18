@@ -7,6 +7,7 @@ import ch.luca008.SpigotApi.Item.Meta.Meta;
 import ch.luca008.SpigotApi.Item.Meta.MetaLoader;
 import ch.luca008.SpigotApi.Item.Meta.Skull;
 import ch.luca008.SpigotApi.SpigotApi;
+import ch.luca008.SpigotApi.Utils.Logger;
 import com.google.common.collect.Multimap;
 import org.apache.commons.lang.StringUtils;
 import org.bukkit.Bukkit;
@@ -33,8 +34,8 @@ import java.util.*;
 
 /*
 //!\\
-Meta/Skull contains NMS
-This/giveOrDopWithoutNBT contains NMS
+Meta/Skull contains NBT
+This/giveOrDopWithoutNBT contains NBT
 //!\\
  */
 
@@ -50,8 +51,8 @@ public class Item {
     private Meta meta;
     private int repairCost;//ItemStack editedCost = new NBTTag(i).setTag("RepairCost",34).getBukkitItem();
     private int customData;
-    //En réalité c'est la durabilité, damage = 5 in game sera 5/1561 pr la hache en diams p.ex
-    private int damage;//((Damageable)i.getItemMeta()).setDamage(i.getType().getMaxDurability()-{int:durability(p.ex123)});
+    //misleading name, in reality this attribute stores the durability. E.g. damage=500 then the item would have 500/1561 (for a diamond sword)
+    private int damage;//((Damageable)i.getItemMeta()).setDamage(i.getType().getMaxDurability()-{int:durability});
     private boolean invulnerable;
 
     public Item(String uid, Material material, String name, List<String> lore, List<Enchant> enchantList, List<ItemFlag> flags, List<ItemAttribute> attributes, Meta meta, int repairCost, int customData, int damage, boolean invulnerable) {
@@ -77,8 +78,8 @@ public class Item {
             try{
                 item.setMaterial(Material.valueOf(r.getString("Material")));
             }catch(Exception e){
-                System.err.println("Can't load item '"+(r.c("Id")?r.getString("Id"):"unknown")+"' because bukkit couldn't find Material '"+r.getString("Material")+"'.");
-                System.err.println("The present item will be replaced by a simple stone block until it gets fixed.");
+                Logger.warn("Can't load item '"+(r.c("Id")?r.getString("Id"):"unknown")+"' because bukkit couldn't find Material '"+r.getString("Material")+"'.", Item.class.getName());
+                Logger.warn("The present item will be replaced by a simple stone block until it gets fixed.", Item.class.getName());
                 return new ItemBuilder().setMaterial(Material.STONE).createItem();
             }
             if(r.c("Name"))item.setName(r.getString("Name"));
@@ -112,10 +113,10 @@ public class Item {
                 item.setMeta(new MetaLoader().load(r.getJson("ItemMeta").asJson()));
             }
             if(r.c("Durability"))item.setDamage(r.getInt("Durability"));
-            if(r.c("Invulnerable"))item.isInvulnerable(r.getBool("Invulnerable"));
+            if(r.c("Invulnerable"))item.setIsInvulnerable(r.getBool("Invulnerable"));
             return item.createItem();
         } catch (ParseException e) {
-            System.err.println("Can't load item with JSON:\n"+json);
+            Logger.error("Can't load item with JSON:\n"+json, Item.class.getName());
             e.printStackTrace();
         }
         return null;
@@ -167,16 +168,21 @@ public class Item {
         ItemStack item = new ItemStack(material, amount);
         if(hasItemMeta()) item.setItemMeta(getItemMeta());
         if(meta!=null){
-            item = meta.apply(item);
-            if(player!=null){
-                if(meta instanceof Skull){
-                    Skull s = (Skull)meta;
-                    if(s.getOwningType()==Skull.SkullOwnerType.PLAYER){
-                        item = ((Skull)meta).applyOwner(item, player.getUniqueId());
+            ItemStack newItem = meta.apply(item);
+            if(newItem == null) {
+                Logger.error("Something went wrong while applying the custom item meta ("+meta.getClass().getName()+").", Item.class.getName());
+            } else {
+                item = newItem;
+                if(player!=null){
+                    if(meta instanceof Skull){
+                        Skull s = (Skull)meta;
+                        if(s.getOwningType()==Skull.SkullOwnerType.PLAYER){
+                            item = ((Skull)meta).applyOwner(item, player.getUniqueId());
+                        }
                     }
-                }
-                else if(meta instanceof Book){
-                    item = ((Book)meta).applyForPlayer(item, player.getName());
+                    else if(meta instanceof Book){
+                        item = ((Book)meta).applyForPlayer(item, player.getName());
+                    }
                 }
             }
         }
@@ -352,7 +358,7 @@ public class Item {
      * @param p The player
      * @param amount See {@link #giveOrDrop(Player, int)}
      */
-    public void giveOrDopWithoutNBT(Player p, int amount){
+    public void giveOrDropWithoutNBT(Player p, int amount){
         ItemStack[] items = toItemStacks(amount, p);
         ItemStack[] withoutNbtItems = new ItemStack[items.length];
         int i = 0;
@@ -367,20 +373,25 @@ public class Item {
         _giveOrDrop(p, withoutNbtItems);
     }
 
+    /**
+     * Add a luck enchant on the item and then use the flag HIDE_ENCHANTS to hide the enchantment. The principal use of this is for interactive inventories, maybe if the player already bought this item.
+     */
     public void glow(){
         addFlag(ItemFlag.HIDE_ENCHANTS);
-        addEnchant(Enchantment.LUCK, 1);
+        addEnchant(new Enchant(Enchantment.LUCK, 1));
     }
 
+    @Nullable
     public String getUid() {
         return uid;
     }
 
+    @Nonnull
     public Material getMaterial(){
         return material;
     }
 
-    public void setMaterial(Material material) {
+    public void setMaterial(@Nonnull Material material) {
         this.material = material;
     }
 
@@ -392,117 +403,124 @@ public class Item {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(@Nullable String name) {
         this.name = name;
     }
 
+    @Nullable
     public List<String> getLore() {
         return lore;
     }
 
-    public void setLore(String lore){
-        this.lore = ch.luca008.SpigotApi.Utils.StringUtils.asLore(lore);
-    }
-
-    public void setLore(List<String> lore) {
+    public void setLore(@Nullable List<String> lore) {
         this.lore = lore;
     }
 
+    /**
+     * @return A COPY of the Enchantments list
+     */
+    @Nullable
     public List<Enchant> getEnchantList() {
-        return enchantList;
+        return new ArrayList<>(enchantList);
     }
 
-    public void setEnchantList(List<Enchant> enchantList) {
+    /**
+     * @param enchantList if set to null then clear all this item's enchantments
+     */
+    public void setEnchantList(@Nullable List<Enchant> enchantList) {
         this.enchantList = enchantList;
     }
 
-    public void addEnchant(Enchant enchant){
+    public void addEnchant(@Nonnull Enchant enchant){
         if(this.enchantList == null){
             this.enchantList = new ArrayList<>();
         } else {
-            if(this.enchantList.contains(enchant)){
-                System.err.println("Cannot add Enchant " + enchant + " to this item because he already has it.");
+            if(this.enchantList.contains(enchant) || this.enchantList.stream().anyMatch(e -> e.getEnchantment().equals(enchant.getEnchantment()))){
+                Logger.warn("Cannot add the given enchantment \"" + enchant + "\" because it already exists on this item.", Item.class.getName());
                 return;
             }
         }
         this.enchantList.add(enchant);
     }
 
-    public void addEnchant(Enchantment enchant, int level){
-        addEnchant(new Enchant(enchant, level));
-    }
-
-    public void removeEnchant(Enchant enchant){
-        if(this.enchantList != null){
-            this.enchantList.remove(enchant);
-        }
-    }
-
-    public void removeEnchant(Enchantment enchant){
+    /**
+     * Do not throw error if the enchantment does not exist in the list. So feel free to call this method just to be sure before adding any new enchant.
+     */
+    public void removeEnchant(@Nonnull Enchantment enchant){
         if(this.enchantList != null){
             this.enchantList.removeIf(e -> e.getEnchantment().equals(enchant));
         }
     }
 
+    /**
+     * @return A COPY of the ItemFlags list
+     */
+    @Nullable
     public List<ItemFlag> getFlags() {
-        return flags;
+        return new ArrayList<>(flags);
     }
 
-    public void setFlags(List<ItemFlag> flags) {
+    /**
+     * @param flags if set to null then clear all this item's flags
+     */
+    public void setFlags(@Nullable List<ItemFlag> flags) {
         this.flags = flags;
     }
 
-    public void addFlag(ItemFlag flag){
+    public void addFlag(@Nonnull ItemFlag flag){
         if(this.flags == null){
             this.flags = new ArrayList<>();
         } else {
             if(this.flags.contains(flag)){
-                System.err.println("Cannot add ItemFlag " + flag + " to this item because he already has it.");
+                Logger.warn("Cannot add the given item flag \"" + flag.name() + "\" because it already exists on this item.", Item.class.getName());
                 return;
             }
         }
         this.flags.add(flag);
     }
 
-    public void removeFlag(ItemFlag flag){
+    /**
+     * Do not throw error if the item flag does not exist in the list. So feel free to call this method just to be sure before adding any new flag.
+     */
+    public void removeFlag(@Nonnull ItemFlag flag){
         if(this.flags != null){
             this.flags.remove(flag);
         }
     }
 
+    /**
+     * @return A COPY of the ItemAttribute list
+     */
+    @Nullable
     public List<ItemAttribute> getAttributes() {
-        return attributes;
+        return new ArrayList<>(attributes);
     }
 
-    public void setAttributes(List<ItemAttribute> attributes) {
+    /**
+     * @param attributes if set to null then clear all this item's attributes
+     */
+    public void setAttributes(@Nullable List<ItemAttribute> attributes) {
         this.attributes = attributes;
     }
 
-    public void addAttribute(ItemAttribute attribute){
+    public void addAttribute(@Nonnull ItemAttribute attribute){
         if(this.attributes == null){
             this.attributes = new ArrayList<>();
         } else {
             if(this.attributes.contains(attribute)){
-                System.err.println("Cannot add Attribute " + attribute + " to this item because he already has it.");
+                Logger.warn("Cannot add the given attribute \"" + attribute + "\" because it already exists on this item.", ItemBuilder.class.getName());
                 return;
             }
         }
         this.attributes.add(attribute);
     }
 
-    public void addAttribute(@Nonnull Attribute attribute, @Nonnull AttributeModifier modifier){
-        addAttribute(new ItemAttribute(attribute, modifier.getName(), modifier.getAmount(), modifier.getOperation(), modifier.getSlot()));
-    }
-
-    public void removeAttribute(ItemAttribute attribute){
+    /**
+     * Do not throw error if the attribute does not exist in the list. So feel free to call this method just to be sure before adding any new attribute.
+     */
+    public void removeAttribute(@Nonnull ItemAttribute attribute){
         if(this.attributes != null){
             this.attributes.remove(attribute);
-        }
-    }
-
-    public void removeAttribute(Attribute attribute){
-        if(this.attributes != null){
-            this.attributes.removeIf(e -> e.getAttribute().equals(attribute));
         }
     }
 
@@ -514,19 +532,20 @@ public class Item {
         this.repairCost = repairCost;
     }
 
-    public int getCustomData(){
+    public int getCustomModelData(){
         return customData;
     }
 
-    public void setCustomData(int customData) {
+    public void setCustomModelData(int customData) {
         this.customData = customData;
     }
 
+    @Nullable
     public Meta getMeta(){
         return meta;
     }
 
-    public void setMeta(Meta meta) {
+    public void setMeta(@Nullable Meta meta) {
         this.meta = meta;
     }
 
@@ -546,7 +565,7 @@ public class Item {
         return invulnerable;
     }
 
-    public void setInvulnerable(boolean invulnerable) {
+    public void setIsInvulnerable(boolean invulnerable) {
         this.invulnerable = invulnerable;
     }
 

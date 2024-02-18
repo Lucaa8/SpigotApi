@@ -2,6 +2,7 @@ package ch.luca008.SpigotApi.Item.Meta;
 
 import ch.luca008.SpigotApi.Api.JSONApi;
 import ch.luca008.SpigotApi.Api.ReflectionApi;
+import ch.luca008.SpigotApi.Item.ItemBuilder;
 import ch.luca008.SpigotApi.SpigotApi;
 import ch.luca008.SpigotApi.Utils.Logger;
 import org.bukkit.Color;
@@ -19,6 +20,54 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Potion implements Meta{
+
+    public static class PotionBuilder {
+
+        private MainEffect mainEffect = MainEffect.UNCRAFTABLE;
+        private List<PotionEffect> effects = new ArrayList<>();
+        private Color color = null;
+
+        public PotionBuilder setMainEffect(MainEffect mainEffect) {
+            this.mainEffect = mainEffect;
+            return this;
+        }
+
+        public PotionBuilder setPotionEffects(@Nonnull List<PotionEffect> potionEffects) {
+            this.effects = potionEffects;
+            return this;
+        }
+
+        public PotionBuilder addEffect(@Nonnull PotionEffect effect) {
+            if(effects.contains(effect) || effects.stream().anyMatch(e->e.getType()==effect.getType())) {
+                Logger.warn("Cannot add the given effect \"" + effect + "\" because it already exists in this potion meta.", PotionBuilder.class.getName());
+            } else {
+                this.effects.add(effect);
+            }
+            return this;
+        }
+
+        public PotionBuilder addEffect(@Nonnull PotionEffectType type, int durationTicks, int amplifier, boolean ambient, boolean particle, boolean icon){
+            return addEffect(new PotionEffect(type, durationTicks, amplifier, ambient, particle, icon));
+        }
+
+        public PotionBuilder addEffectWithIcon(@Nonnull PotionEffectType type, int durationTicks, int amplifier, boolean particle) {
+            return addEffect(type, durationTicks, amplifier, true, particle, true);
+        }
+
+        public PotionBuilder addEffectWithoutIcon(@Nonnull PotionEffectType type, int durationTicks, int amplifier, boolean particle) {
+            return addEffect(type, durationTicks, amplifier, true, particle, false);
+        }
+
+        public PotionBuilder setColor(Color color) {
+            this.color = color;
+            return this;
+        }
+
+        public Potion getPotion() {
+            return new Potion(mainEffect, effects, color);
+        }
+
+    }
 
     public enum MainEffect {
         //base potions

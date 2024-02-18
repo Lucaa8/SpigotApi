@@ -10,7 +10,12 @@ import java.lang.reflect.InvocationTargetException;
 public interface Meta {
 
     public enum MetaType {
-        POTION("Potion"), SKULL("Skull"), LEATHER_ARMOR("LeatherArmor"), TROPICAL_FISH("TropicalFish"), BOOK("Book");
+        POTION("Potion"),
+        SKULL("Skull"),
+        LEATHER_ARMOR("LeatherArmor"),
+        TROPICAL_FISH("TropicalFish"),
+        BOOK("Book"),
+        TRIM_ARMOR("TrimArmor");
 
         String clazz;
         MetaType(String clazz){

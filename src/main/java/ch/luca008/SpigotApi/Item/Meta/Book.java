@@ -1,5 +1,6 @@
 package ch.luca008.SpigotApi.Item.Meta;
 
+import ch.luca008.SpigotApi.Utils.Logger;
 import ch.luca008.SpigotApi.Utils.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -10,8 +11,47 @@ import org.json.simple.JSONObject;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 public class Book implements Meta{
+
+    public static class BookBuilder {
+
+        private String author = null;
+        private String title = null;
+        private BookMeta.Generation generation = BookMeta.Generation.TATTERED;
+        private List<String> pages = new ArrayList<>();
+
+        public BookBuilder setAuthor(String author) {
+            this.author = author;
+            return this;
+        }
+
+        public BookBuilder setTitle(String title) {
+            this.title = title;
+            return this;
+        }
+
+        public BookBuilder setGeneration(BookMeta.Generation generation) {
+            this.generation = generation;
+            return this;
+        }
+
+        public BookBuilder setPages(ArrayList<String> pages) {
+            this.pages = pages;
+            return this;
+        }
+
+        public BookBuilder addPageContent(String pageContent) {
+            this.pages.add(pageContent);
+            return this;
+        }
+
+        public Book getBook() {
+            return new Book(author, title, generation, pages.toArray(String[]::new));
+        }
+
+    }
 
     private String author = null;
     private String title = null;
@@ -29,7 +69,7 @@ public class Book implements Meta{
             try{
                 generation = BookMeta.Generation.valueOf((String)json.get("Generation"));
             }catch(Exception e){
-                System.err.println("Invalid generation tag : " + (String)json.get("Generation"));
+                Logger.warn("Invalid generation tag : " + (String) json.get("Generation"), Book.class.getName());
             }
         }
         if(json.containsKey("Pages")){
@@ -38,7 +78,7 @@ public class Book implements Meta{
                 try{
                     pages.add(Integer.parseInt(o.toString()),(String)jarr.get(o));
                 }catch(NumberFormatException nfe){
-                    System.err.println("BookMeta, can't read " + o + " as an integer.");
+                    Logger.warn("BookMeta, can't read " + o + " as an integer.", Book.class.getName());
                 }
             }
         }
