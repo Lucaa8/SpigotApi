@@ -161,7 +161,7 @@ Item item = new ItemBuilder()
         .setGlowing(true) //if you want the enchanted effect on the bottle
         .createItem();
 ```
-The Main effect is one the default effect you can retrieve inside the _Food & Drinks_ tab of the creative inventory. **STRONG_** targets the level ii of the potion type (E.g. STRONG_SWIFTNESS means Speed II 1m30). The **LONG_** targets the expanded version of the potion (E.g. LONG_SWIFTNESS means Speed I 8m). Those are not very customizable so this is an optinal effect. If you do not set one, the Potion will be of type **UNCRAFTABLE** but you can still fully customize the effect displayed on it and given to the player when drank. You can combine default effect (max 1) and many secondary custom effects. The color is always customizable (with and without main effect). 
+The Main effect is one the default effect you can retrieve inside the _Food & Drinks_ tab of the creative inventory. **STRONG_** targets the level ii of the potion type (E.g. STRONG_SWIFTNESS means Speed II 1m30). The **LONG_** targets the expanded version of the potion (E.g. LONG_SWIFTNESS means Speed I 8m). Those are not very customizable so this is an optional effect. If you do not set one, the Potion will be of type **UNCRAFTABLE** but you can still fully customize the effect displayed on it and given to the player when drank. You can combine default effect (max 1) and many secondary custom effects. The color is always customizable (with and without main effect). 
 
 [PotionMeta](https://github.com/Lucaa8/SpigotApi/assets/47627900/6dc66421-0eb3-4201-bc60-cb8537839ca8)
 
