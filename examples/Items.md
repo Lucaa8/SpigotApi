@@ -39,9 +39,6 @@ With this, you can check the item clicked without hardcoding the Display Name or
 ### Enchantments and Attributes
 SpigotApi has is own way to create/store attributes and enchants so they can be written as JSON with the rest of the item's meta. For this reason, you'll need to use the custom classes [Enchant.java](https://github.com/Lucaa8/SpigotApi/blob/master/src/main/java/ch/luca008/SpigotApi/Item/Enchant.java) and [ItemAttribute.java](https://github.com/Lucaa8/SpigotApi/blob/master/src/main/java/ch/luca008/SpigotApi/Item/ItemAttribute.java) of SpigotApi.
 
-### ItemBuilder
-Because there is a lot of meta attributes, it would be annoying to create each item with a constructor. It's for this reason that an ItemBuilder has been created to build any item without the nood to give every attribute. See the [Example](#example) section to learn how to use it.
-
 ### Give or Drop
 In the Item object there are some helpers to create the bukkit itemstack corresponding to your Item. In these methods you can specify how many of this itemstack you want to give and also to which player. You'll see later in this file that you can create items with [skull meta](#skull-meta) for example, which can be a dynamic meta which adapts to the player who will receive this item. You'll also be able to give directly the item to any online player. The method will check if this player can hold the specified amount in his inventory and if not the remaining items will drop on the ground on the player's location.
 
@@ -62,6 +59,9 @@ ItemStack[] itemStacks2 = item.toItemStacks(32); //ok but the array will contain
 item.giveOrDrop(player, 128);
 item.giveOrDropWithoutNBT(player, 128);
 ```
+
+### ItemBuilder
+Because there is a lot of meta attributes, it would be annoying to create each item with a constructor. It's for this reason that an ItemBuilder has been created to build any item without the nood to give every attribute. See the [Example](#example) section to learn how to use it.
 
 ### Example
 Here a small example to teach you how to use the item builder and then the conversion to itemstack.
