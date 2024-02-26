@@ -215,7 +215,12 @@ public class Potion implements Meta{
                 JSONApi.JSONReader r = SpigotApi.getJSONApi().getReader((JSONObject) o);
                 PotionEffectType type = PotionEffectType.getByName(r.getString("Type"));
                 if(type!=null){
-                    customsEffects.add(new PotionEffect(type, r.getInt("Duration"), r.getInt("Amplifier"), r.c("Ambient")&&r.getBool("Ambient"), r.c("Particles")&&r.getBool("Particles")));
+                    customsEffects.add(new PotionEffect(type,
+                            r.getInt("Duration"),
+                            r.getInt("Amplifier"),
+                            r.c("Ambient")&&r.getBool("Ambient"),
+                            r.c("Particles")&&r.getBool("Particles"),
+                            r.c("Icon")&&r.getBool("Icon")));
                 }
             }
         }
@@ -284,6 +289,9 @@ public class Potion implements Meta{
                 }
                 if(eff.hasParticles()){
                     e.put("Particles", true);
+                }
+                if(eff.hasIcon()){
+                    e.put("Icon", true);
                 }
                 jarr.add(e);
             }

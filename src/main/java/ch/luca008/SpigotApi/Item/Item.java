@@ -31,6 +31,7 @@ import org.json.simple.parser.ParseException;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /*
 //!\\
@@ -70,56 +71,47 @@ public class Item {
         this.invulnerable = invulnerable;
     }
 
+    public static Item fromJson(JSONApi.JSONReader reader){
+        ItemBuilder item = new ItemBuilder();
+        if(reader.c("Id"))item.setUid(reader.getString("Id"));
+        try{
+            item.setMaterial(Material.valueOf(reader.getString("Material")));
+        }catch(Exception e){
+            Logger.warn("Can't load item '"+(reader.c("Id")?reader.getString("Id"):"unknown")+"' because bukkit couldn't find Material '"+reader.getString("Material")+"'.", Item.class.getName());
+            Logger.warn("The present item will be replaced by a simple stone block until it gets fixed.", Item.class.getName());
+            return new ItemBuilder().setMaterial(Material.STONE).createItem();
+        }
+        if(reader.c("Name"))item.setName(reader.getString("Name"));
+        if(reader.c("RepairCost"))item.setRepairCost(reader.getInt("RepairCost"));
+        if(reader.c("CustomData"))item.setCustomData(reader.getInt("CustomData"));
+        if(reader.c("Lore")){
+            List<String> l = reader.getArray("Lore").stream().map(Object::toString).toList();
+            item.setLore(l);
+        }
+        if(reader.c("Enchants")){
+            reader.getArray("Enchants").forEach(o->item.addEnchant(new Enchant(((JSONObject)o).toJSONString())));
+        }
+        if(reader.c("Attributes")){
+            reader.getArray("Attributes").forEach(o->item.addAttribute(new ItemAttribute(((JSONObject)o).toJSONString())));
+        }
+        if(reader.c("Flags")){
+            reader.getArray("Flags").forEach(o->item.addFlag(ItemFlag.valueOf((String)o)));
+        }
+        if(reader.c("ItemMeta")){
+            item.setMeta(new MetaLoader().load(reader.getJson("ItemMeta").asJson()));
+        }
+        if(reader.c("Durability"))item.setDamage(reader.getInt("Durability"));
+        if(reader.c("Invulnerable"))item.setIsInvulnerable(reader.getBool("Invulnerable"));
+        return item.createItem();
+    }
+
     public static Item fromJson(String json){
         try {
             JSONApi.JSONReader r = SpigotApi.getJSONApi().getReader((JSONObject) new JSONParser().parse(json));
-            ItemBuilder item = new ItemBuilder();
-            if(r.c("Id"))item.setUid(r.getString("Id"));
-            try{
-                item.setMaterial(Material.valueOf(r.getString("Material")));
-            }catch(Exception e){
-                Logger.warn("Can't load item '"+(r.c("Id")?r.getString("Id"):"unknown")+"' because bukkit couldn't find Material '"+r.getString("Material")+"'.", Item.class.getName());
-                Logger.warn("The present item will be replaced by a simple stone block until it gets fixed.", Item.class.getName());
-                return new ItemBuilder().setMaterial(Material.STONE).createItem();
-            }
-            if(r.c("Name"))item.setName(r.getString("Name"));
-            if(r.c("RepairCost"))item.setRepairCost(r.getInt("RepairCost"));
-            if(r.c("CustomData"))item.setCustomData(r.getInt("CustomData"));
-            if(r.c("Lore")){
-                JSONArray jarr = r.getArray("Lore");
-                List<String> l = new ArrayList<String>();
-                jarr.forEach(o->l.add((String)o));
-                item.setLore(l);
-            }
-            if(r.c("Enchants")){
-                JSONArray jarr = r.getArray("Enchants");
-                List<Enchant> e = new ArrayList<Enchant>();
-                jarr.forEach(o->e.add(new Enchant(((JSONObject)o).toJSONString())));
-                item.setEnchantList(e);
-            }
-            if(r.c("Attributes")){
-                JSONArray jarr = r.getArray("Attributes");
-                List<ItemAttribute> a = new ArrayList<ItemAttribute>();
-                jarr.forEach(o->a.add(new ItemAttribute(((JSONObject)o).toJSONString())));
-                item.setAttributes(a);
-            }
-            if(r.c("Flags")){
-                JSONArray jarr = r.getArray("Flags");
-                List<ItemFlag> f = new ArrayList<ItemFlag>();
-                jarr.forEach(o->f.add(ItemFlag.valueOf((String)o)));
-                item.setFlags(f);
-            }
-            if(r.c("ItemMeta")){
-                item.setMeta(new MetaLoader().load(r.getJson("ItemMeta").asJson()));
-            }
-            if(r.c("Durability"))item.setDamage(r.getInt("Durability"));
-            if(r.c("Invulnerable"))item.setIsInvulnerable(r.getBool("Invulnerable"));
-            return item.createItem();
+            return fromJson(r);
         } catch (ParseException e) {
-            Logger.error("Can't load item with JSON:\n"+json, Item.class.getName());
-            e.printStackTrace();
+            return null;
         }
-        return null;
     }
 
     public JSONObject toJson(){

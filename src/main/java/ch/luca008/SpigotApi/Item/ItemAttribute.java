@@ -23,12 +23,13 @@ public class ItemAttribute {
         try {
             JSONObject j = (JSONObject) new JSONParser().parse(json);
             attribute = Attribute.valueOf((String)j.get("Attribute"));
+            UUID uuid = UUID.fromString((String)j.get("UUID"));
             String name = (String)j.get("Name");
             double value = (double)j.get("Value");
             AttributeModifier.Operation operation = j.containsKey("Operation") ? AttributeModifier.Operation.valueOf((String)j.get("Operation")) : AttributeModifier.Operation.ADD_NUMBER;
             EquipmentSlot slot = j.containsKey("Slot") ? EquipmentSlot.valueOf((String)j.get("Slot")) : null;
-            if(slot==null) modifier = new AttributeModifier(UUID.randomUUID(), name, value, operation);
-            else modifier = new AttributeModifier(UUID.randomUUID(), name, value, operation, slot);
+            if(slot==null) modifier = new AttributeModifier(uuid, name, value, operation);
+            else modifier = new AttributeModifier(uuid, name, value, operation, slot);
         } catch (ParseException e) {
             e.printStackTrace();
         }
@@ -83,6 +84,7 @@ public class ItemAttribute {
     public JSONObject toJson(){
         JSONObject j = new JSONObject();
         j.put("Attribute", attribute.name());
+        j.put("UUID", modifier.getUniqueId().toString());
         j.put("Name", modifier.getName());
         j.put("Value", modifier.getAmount());
         j.put("Operation", modifier.getOperation().name());
