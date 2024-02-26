@@ -1,5 +1,10 @@
 # Items
-This is not an "API" but rather a powerful tool so it's worth presenting it because it can save you a big amount of time and code to create and store Minecraft items. There is a "base" which contains all the standard item meta like _display name_, _lore_, _enchantements_, _custom data_ and more... Then there is some more specific meta like _potion_, _skull_ and more.
+
+## Disclaimer
+This feature is still in its early stages. Despite extensive testing, certain highly specific behaviors may cause unpredictable issues. Please report any problematic code you encounter.
+
+## Description
+This is not an "API" but rather a powerful tool so it's worth presenting it because it can save you a lot of time and code to create and store Minecraft items without worring about Bukkit API version. There is a "base" which contains all the standard item meta like _display name_, _lore_, _enchantements_, _custom data_ and more... Then there are some more specific metas like _potion_, _skull_ and more.
 
 ## Base Meta
 The "Base Meta" is embed inside the SpigotApi "Item" object. Those basic itemmeta things are considered linked directly to the item compared to the standard Bukkit itemstack which contains a an "ItemMeta" interface. Here is an exhaustive list of "Base Meta" things
@@ -272,3 +277,16 @@ ItemStack anotherBook = item.toItemStack(1, Bukkit.getPlayer("someone_else"));
 
 
 ## Tropical Fish Meta
+There isn't much to say here. Because `TropicalFish` got the same name in SpigotApi as in the bukkit interface, then one of them will need to specify the package, sadly.
+```java
+item = new ItemBuilder()
+        .setMaterial(Material.TROPICAL_FISH_BUCKET)
+        .setMeta(new TropicalFish(org.bukkit.entity.TropicalFish.Pattern.FLOPPER, DyeColor.BLUE, DyeColor.WHITE))
+        .createItem();
+```
+![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/58914080-4a9f-4c23-a5f5-00d68573e03c)
+![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/19db2cde-4587-431b-bb62-ab735ac7d24b)
+
+## More Metas
+Since this feature is still in its early stages, several standard Bukkit ItemMetas have not been implemented yet. Additional metas, such as enchanted books, maps, fireworks, etc., will be included in future versions.
+
