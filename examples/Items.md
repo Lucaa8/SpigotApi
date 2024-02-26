@@ -111,6 +111,32 @@ public void onPlayerMessage(AsyncPlayerChatEvent e)
 ```
 That's a dummy example, but you get the point. In most cases you do not care about being similar, but if you want to create some challenges for your players like "Having a sharp 1 diamond sword in your inventory to complete this challenge" you can use `Item#isSimilar(ItemStack, Player)`. You can pass `null` for the Player arg for all Items but Books which contains [BookMeta](#book-meta) with a `{P}` placeholder.
 
+## Storing your items
+In this section you'll learn how to export your item in a JSON file and then import it back. (100% working between all SpigotApi's supported versions. E.g. you can export an item in 1.20.1 and import it back in 1.20.4)
+
+### Print
+If you need to get the plain text as human readable text just do this
+```java
+String itemJson = JSONApi.prettyJson(item.toJson());
+```
+
+### Export
+If you want to put your item in a JSON file you just need to do this
+```java
+File file = new File(getDataFolder(), "item.json");
+SpigotApi.getJSONApi().getWriter(item.toJson()).writeToFile(file, true);
+```
+The `true` just specify if you want indentation or not. \
+P.S: The file will be created automatically if not existing yet. (Directory must exist tho)
+
+### Import
+If you want to import back your item from a JSON file you do this
+```java
+File file = new File(getDataFolder(), "item.json");
+Item item = Item.fromJson(SpigotApi.getJSONApi().readerFromFile(file));
+```
+Easy eh?
+
 ## Potion Meta
 This custom potion meta let you add effects on your potion material in one single line of code. It can be used with POTION, SPLASH_POTION and LINGERING_POTION material.
 ```java
@@ -217,10 +243,32 @@ ItemStack anotherHead = item.toItemStack(1, Bukkit.getPlayer("someone_else"));
 //etc...
 ```
 
-**Note**: Because the skull has no meta data, the `Item#isSimilar(ItemStack, <Player:null>)` will check everything like normal, but the current skin displayed won't influence the result. So two heads with the same display name, lore, etc... but with two different skins can return `true` if they were generated with the `SkullOwnerType.PLAYER` value. This apply only on this type, `PSEUDO` and `HEADS-MC` will act as normal when `isSimilar` is called.
+**Note**: Because the skull has no meta data, the `Item#isSimilar(ItemStack, <Player:null>)` will check everything like normal, but the current skin displayed won't influence the result. So two heads with the same display name, lore, etc... but with two different skins can return `true` if they were generated with the `SkullOwnerType.PLAYER` value. This apply only on this type, `PSEUDO` and `MCHEADS` will act as normal when `isSimilar` is called.
 
 ## Book Meta
+The Book Meta let you write text inside a book's pages and then sign it. You can use placeholders `{P}` in the book's author and title to target the (name of the) player who will receive the book.
+```java
+Item item = new ItemBuilder()
+        .setMaterial(Material.WRITTEN_BOOK)
+        .setMeta(new Book.BookBuilder()
+                .setAuthor("§a{P}")
+                .setTitle("§b{P}'s Diary")
+                .setGeneration(BookMeta.Generation.ORIGINAL)
+                //.setPages(new ArrayList<>(List.of("First page's content", "Second page's content", "...")))
+                .addPageContent("First page's content")
+                .addPageContent("Second page's content")
+                .addPageContent("...")
+                .getBook())
+        .createItem();
+...
+Player player = e.getPlayer();
+ItemStack book = item.toItemStack(1, player); //if you do not use the {P} ph, you can call Item#toItemStack(amount) without player
+...
+ItemStack anotherBook = item.toItemStack(1, Bukkit.getPlayer("someone_else"));
+//etc...
+```
+![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/f00c625d-933f-40eb-98f9-a7965edb0171)
+![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/9b59a72b-668b-424c-afeb-d3370db67f40)
+
 
 ## Tropical Fish Meta
-
-## Storing your items
