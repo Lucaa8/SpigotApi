@@ -97,11 +97,24 @@ You can clearly see that the above meta is present on this sword. The item's att
 
 In this picture we can see the base repair cost was indeed 15 but +1 for every diamond so it increased to 17.
 
+## Is Similar
+With this Item method you can check if an itemstack is similar to this item. Everything is checked, even the below custom Meta. UID, display name, enchants, repair cost, potion meta, etc...
+```java
+@EventHandler
+public void onPlayerMessage(AsyncPlayerChatEvent e)
+{
+  Item item = new ItemBuilder()...setName("§bCustom Sword")...createItem();
+  Player player = e.getPlayer();
+  ItemStack handItem = player.getInventory().getItemInMainHand();
+  boolean areTheSame = item.isSimilar(handItem, <player:null>);
+}
+```
+That's a dummy example, but you get the point. In most cases you do not care about being similar, but if you want to create some challenges for your players like "Having a sharp 1 diamond sword in your inventory to complete this challenge" you can use `Item#isSimilar(ItemStack, Player)`. You can pass `null` for the Player arg for all Items but Books which contains [BookMeta](#book-meta) with a `{P}` placeholder.
 
 ## Potion Meta
 This custom potion meta let you add effects on your potion material in one single line of code. It can be used with POTION, SPLASH_POTION and LINGERING_POTION material.
 ```java
-item = new ItemBuilder()
+Item item = new ItemBuilder()
         .setMaterial(Material.POTION)
         .setName("§cThe Witch's Potion")
         .setMeta(new Potion.PotionBuilder()
@@ -126,7 +139,7 @@ As you can see, the Speed II 1m30 default effect is applied, as well as the two 
 ## Leather Color Meta
 This Meta is only for Leather armor pieces and not for [trimming](#trim-armor-meta). With the Leather Color Meta you can set the default color of Minecraft or any customizable RGB value. 
 ```java
-item = new ItemBuilder()
+Item item = new ItemBuilder()
         .setMaterial(Material.LEATHER_CHESTPLATE)
         .setMeta(new LeatherArmor(Color.ORANGE))
         //.setMeta(new LeatherArmor(Color.fromRGB(r, g, b)))
@@ -146,7 +159,7 @@ If you want to hide the _Color:_ description, you can add the Flag _HIDE_DYE_ to
 ## Trim Armor Meta
 This Meta is used to create patterns on armors. It can be applied on any armor piece like _IRON_CHESTPLATE_, _DIAMOND_BOOTS_, ...
 ```java
-item = new ItemBuilder()
+Item item = new ItemBuilder()
         .setMaterial(Material.IRON_CHESTPLATE)
         .setMeta(new TrimArmor(TrimMaterial.EMERALD, TrimPattern.COAST))
         .createItem();
@@ -161,10 +174,11 @@ The Skull Meta is a little bit more complex as it can be applied dynamically on 
 ### HEADS-MC
 The first and most funny one is the possibility to apply full customizable textures on your skull item! Just hope on [Minecraft Heads](https://minecraft-heads.com/) and choose any texture in the [Custom Heads](https://minecraft-heads.com/custom-heads) tab. When you found one, click on it and scroll down until you find the below section:
 ![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/190da9b1-e699-43ad-858c-97a50b5002a1)
+
 Finally copy the Value and you are good to go!
 ```java
 String texture = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTI4OWQ1YjE3ODYyNmVhMjNkMGIwYzNkMmRmNWMwODVlODM3NTA1NmJmNjg1YjVlZDViYjQ3N2ZlODQ3MmQ5NCJ9fX0=";
-item = new ItemBuilder()
+Item item = new ItemBuilder()
         .setMaterial(Material.PLAYER_HEAD)
         .setName("§bThe Earth")
         .setMeta(new Skull(Skull.SkullOwnerType.MCHEADS, texture))
@@ -176,7 +190,34 @@ The enum type name `Skull.SkullOwnerType.MCHEADS` is misleading as the website n
 ![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/a3567732-8765-4085-a3b2-7f2c33a2dce7)
 
 ### PSEUDO
-Basic one, just 
+Basic one, just put the Minecraft name of a player and you'll get a player head with his skin. 
+```java
+Item item = new ItemBuilder()
+        .setMaterial(Material.PLAYER_HEAD)
+        .setName("§cThe Owner")
+        .setMeta(new Skull(Skull.SkullOwnerType.PSEUDO, /*Set a player's name*/ "Luca008"))
+        .createItem();
+```
+P.S.1: Please note that this functionality has been tested in online mode. I have no idea if this works in offline server (without mojang auth). \
+P.S.2: The server is fetching the Mojang servers and it can take some time + you can get rate limited if you spam the item's creation. Consider creating the ItemStack only once and thn storing it inside a var.
+
+### PLAYER
+The last one is easy to create but needs a little bit of understanding. When you set the type to `SkullOwnerType.PLAYER`, you do not set any data right now. The data will be determined when the itemstack is **created** only. It will target the player who will receive the head. So you'll need to call the `Item#toItemStack(amount, PLAYER);` (or `Item#giveOrDrop(PLAYER, amount)`) or it wont work.
+```java
+Item item = new ItemBuilder()
+        .setMaterial(Material.PLAYER_HEAD)
+        .setName("§aYour Head")
+        .setMeta(new Skull(Skull.SkullOwnerType.PLAYER, null))
+        .createItem();
+...
+Player player = e.getPlayer();
+ItemStack head = item.toItemStack(1, player);
+//head is now a PLAYER_HEAD with the skin of the player which is involved in the event
+ItemStack anotherHead = item.toItemStack(1, Bukkit.getPlayer("someone_else"));
+//etc...
+```
+
+**Note**: Because the skull has no meta data, the `Item#isSimilar(ItemStack, <Player:null>)` will check everything like normal, but the current skin displayed won't influence the result. So two heads with the same display name, lore, etc... but with two different skins can return `true` if they were generated with the `SkullOwnerType.PLAYER` value. This apply only on this type, `PSEUDO` and `HEADS-MC` will act as normal when `isSimilar` is called.
 
 ## Book Meta
 
