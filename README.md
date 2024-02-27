@@ -22,3 +22,28 @@ Currently, the SpigotApi only supports the 1.20 to 1.20.4 Spigot/Paper version. 
 
 ## Documentation and examples
 Find all the documentation you need to use this API in the `examples` folder. You have one markdown file for each API in the features section.
+
+## Download
+Get the latest version of SpigotApi [here](https://mvn.luca-dc.ch/repository/dev-mc/ch/luca008/SpigotApi/latest/SpigotApi-latest.jar) and put it inside your plugins folder. \
+**Current version of SpigotApi:** 2.1
+
+## How to use it?
+You can get SpigotApi as a maven dependency in your project.
+
+### Add the repository
+```xml
+<repository>
+  <id>dev-mc</id>
+  <url>https://mvn.luca-dc.ch/repository/dev-mc/</url>
+</repository>
+```
+
+### Add the dependency
+```xml
+<dependency>
+  <groupId>ch.luca008</groupId>
+  <artifactId>SpigotApi</artifactId>
+  <version>latest</version>
+  <scope>provided</scope>
+</dependency>
+```
