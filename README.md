@@ -1,18 +1,23 @@
 # SpigotApi
 ## Description
-SpigotApi allows you to do some fancy things not fully supported by the standard Bukkit/Spigot API. SpigotApi was firstly developped for older Minecraft versions like 1.2 or 1.15. During these versions you couldnt use NMS as "easily" as today because of the package name changing every versions. Right now (after 1.17 and newer versions) you can access those package without reflection and use them as you wish, but you need to understand how the Minecraft server is working, from obfuscated enums to packets. SpigotApi does all the dirty work for you, and you can use some cool methods inside your plugins!
+SpigotApi allows you to do some fancy things not fully supported by the standard Bukkit/Spigot API. SpigotApi was firstly developped for older Minecraft versions like 1.12 or 1.15. During these versions you couldnt use NMS as "easily" as today because of the package name changing every versions. Right now (after 1.17 and newer versions) you can access those packages without reflection and use them as you wish, but you need to understand how the Minecraft server is working, from obfuscated enums to packets. SpigotApi does all the dirty work for you, and you can use some cool methods inside your plugins!
 
 ## Version
-Currently, the SpigotApi only supports the 1.20 to 1.20.4 Spigot/Paper version. This is because attributes names can change from version to version and you cannot use it with others Minecraft versions. I will add the futures versions of Spigot/Paper when they appear, but I didnt plan to release SpigotApi for older versions.
+Currently, the SpigotApi only supports the 1.20 to 1.20.4 Spigot/Paper version. This is because attributes names can change from version to version and you cannot use it with others Minecraft versions. I will add the futures versions of Spigot/Paper when they appear, but I didnt plan to release SpigotApi for older versions. \
+**Currently supported versions:**
+- 1.20.1
+- 1.20.2
+- 1.20.4
 
 ## Features
-- **TeamAPI** - Create your custom teams and ranks with custom prefixes, suffixes, colors and more..
+- **TeamApi** - Create your custom teams and ranks with custom prefixes, suffixes, colors and more..
 - **ScoreboardApi** - Create multiples scoreboards with default values (placeholders), set them to your players and update them easily whenever you want!
 - **NPCApi** - Create basic NPCs which look at the player in game, put them skins, easy-to-setup interaction manager.
 - **PromptApi** - Open a sign to a player and wait for their response, do whatever you want with it inside a sync. callback.
 - **NBTTagApi** - Add NBTs on your items to retrieve them easily in inventories
 - **SnifferApi** - Listen to every packets a player receive
 - **JSONApi** - Store and read information easily in JSON instead of YAML
+- **FileApi** - List and export all the inner files inside your plugin (default configs, lang files, etc...)
 - **Items** - An unique way to create, customize, compare and store items easily without YAML or NBT problems.
 
 ## Documentation and examples
