@@ -65,7 +65,7 @@ public class TeamAPI implements Listener {
     }
 
     /**
-     * Register a new team on the server (if not-null & not already registered). Then send create packet to everyone
+     * Register a new team on the server (if not-null and not already registered). Then send create packet to everyone
      * @param team The new team to register
      * @return return false if the specified team was null or already registered. Otherwise, return true (and the team is registered)
      */

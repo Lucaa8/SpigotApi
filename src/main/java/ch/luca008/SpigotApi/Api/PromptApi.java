@@ -26,7 +26,7 @@ public class PromptApi {
      * The sign is placed at the player's location even though a block is already placed here. The original block will be recovered after the sign edition. <p>
      * The player can cancel all changes by typing the cancel cmd specified inside this api on the first line of the sign.
      * @param player The player you want to open the sign
-     * @param callback The code you want to be executed when the player hits Done or closes the sign. The cancel argument is set to true when the first line on the sign is equals (ignore case) to the {@link #cancelCmd} attribute.
+     * @param callback The code you want to be executed when the player hits Done or closes the sign. The cancel argument is set to true when the first line on the sign is equals (ignore case) to the <b>exitCmd</b> argument.
      * @param linesColor The color the lines will be displayed on the sign (default when null: black)
      * @param exitCmd A string which will cancel the prompt (second param of callback will be false) if the player writes it on the first sign's line. (can be null if you do not need a cancellable)
      * @param initialLines An array (size 4 max) with the lines you want to show to the player when the sign opens. You can set a blank line with an empty string. If the size is less than 4 then the array will be filled with blank lines.

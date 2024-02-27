@@ -194,7 +194,7 @@ public class Item {
     /**
      * Similar to {@link #toItemStack(int, OfflinePlayer)}} but amount can exceed 64
      * @param amount any amount > 0 (can exceed 64)
-     * @return An array of stacks. If amount <= 64 the array will contain the only stack at index 0
+     * @return An array of stacks. If amount is less or equal to 64 the array will contain the only stack at index 0
      */
     public ItemStack[] toItemStacks(int amount, @Nullable OfflinePlayer player){
         if(amount<=64)return new ItemStack[]{toItemStack(amount,player)};
@@ -284,7 +284,7 @@ public class Item {
      * <p>
      * A special UUID field into the item's nbttags (Name: UUID)
      * <p>
-     * Meta: Skull, Book, TropicalFishBucket, LeatherArmor and Potions(Splash & Lingering included)
+     * Meta: Skull, Book, TropicalFishBucket, LeatherArmor and Potions(Splash and Lingering included), TrimArmor
      * @param item The itemstack to compare. Can contain meta like skull, book(even with {P} balises for playername), nbttags like custom data, repaircost, damage, etc
      * @param player A potential player who can be used in {@link Meta#hasSameMeta(ItemStack, OfflinePlayer)}. Can be null without throwing exceptions
      * @return if the itemstack match the current item
@@ -388,7 +388,8 @@ public class Item {
     }
 
     /**
-     * If {@link this#name} is null then the ItemStack will have the Minecraft default name for this material.
+     * If {@link Item#name} is null then the ItemStack will have the Minecraft default name for this material.
+     * @return the name or null
      */
     @Nullable
     public String getName(){

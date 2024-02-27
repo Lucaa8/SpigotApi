@@ -6,7 +6,7 @@
 
     <groupId>ch.luca008</groupId>
     <artifactId>SpigotApi</artifactId>
-    <version>2.0</version>
+    <version>2.1</version>
 
     <name>SpigotApi</name>
     <description>Methods to help with net.minecraft.server and org.bukkit classes</description>
@@ -16,6 +16,7 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <mainClass>ch.luca008.SpigotApi.SpigotApi</mainClass>
+        <buildLocation>C:\path\to\plugins</buildLocation>
     </properties>
 
     <dependencies>
@@ -45,8 +46,27 @@
                 <configuration>
                     <shadedArtifactAttached>true</shadedArtifactAttached>
                     <shadedClassifierName>shaded</shadedClassifierName>
-                    <outputDirectory>C:\Users\lucad\Desktop\Test\Test1201\plugins</outputDirectory>
+                    <outputDirectory>${buildLocation}</outputDirectory>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.6.3</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <quiet>true</quiet>
+                            <additionalJOptions>
+                                <additionalOption>-Xdoclint:none</additionalOption> <!-- Remove strict checks -->
+                            </additionalJOptions>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
         <sourceDirectory>src/main/java</sourceDirectory>
