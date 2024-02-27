@@ -1,0 +1,24 @@
+# FileApi
+This small API lets you export files from inside your JAR to any directory on the system. It may be useful for default configurations, lang files, etc...
+
+## List files
+```java
+@Override
+public void onEnable() {
+    FileApi.listFiles(YourMainClass.class).forEach(System.out::println);
+}
+```
+Here an output example with the following structure
+image
+`
+[13:29:54] [Server thread/INFO]: META-INF/
+[13:29:54] [Server thread/INFO]: META-INF/MANIFEST.MF
+[13:29:54] [Server thread/INFO]: ch/
+[13:29:54] [Server thread/INFO]: ch/luca008/
+[13:29:54] [Server thread/INFO]: ch/luca008/testplugin/
+[13:29:54] [Server thread/INFO]: ch/luca008/testplugin/TestPlugin.class
+[13:29:54] [Server thread/INFO]: Lang/
+[13:29:54] [Server thread/INFO]: Lang/en.json
+[13:29:54] [Server thread/INFO]: Lang/fr.json
+[13:29:54] [Server thread/INFO]: plugin.yml
+`
