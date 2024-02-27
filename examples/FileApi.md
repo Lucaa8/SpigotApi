@@ -10,7 +10,9 @@ public void onEnable() {
 }
 ```
 Here an output example with the following structure
+
 ![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/7ddd9671-b736-4000-87d1-afd58ec5615a)
+
 
 ```
 [13:29:54] [Server thread/INFO]: META-INF/
