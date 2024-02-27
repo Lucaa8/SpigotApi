@@ -46,11 +46,12 @@ try {
 ### Dynamically
 If you want to export any file in a given folder you would do a little bit of filtering to find and export the correct files.
 ```java
-l.stream()
+FileApi.listFiles(YourMainClass.class).stream()
     //f would be "Lang/", "Lang/en.json", "Lang/fr.json", "plugin.yml", etc...
     .filter(f->f.startsWith("Lang/")&&f.endsWith(".json"))
     .forEach(f-> {
         try {
+            //                   mainclass      inPath        outPath
             FileApi.exportFile(TestPlugin.class, f, new File(getDataFolder(), f));
             //The output file (3rd arg) will be "plugins/YourPlugin/Lang/en.json" and "plugins/YourPlugin/Lang/fr.json"
         } catch (IOException ex) {
