@@ -122,7 +122,9 @@ public class Item {
         if(repairCost>0)j.put("RepairCost", repairCost);
         if(customData>0)j.put("CustomData", customData);
         if(lore!=null&&!lore.isEmpty()){
-            j.put("Lore",lore);
+            JSONArray jarr = new JSONArray();
+            lore.forEach(l->jarr.add(l));
+            j.put("Lore",jarr);
         }
         if(enchantList!=null&&!enchantList.isEmpty()){
             j.put("Enchants",Enchant.listToJson(enchantList));
@@ -402,7 +404,9 @@ public class Item {
 
     @Nullable
     public List<String> getLore() {
-        return lore;
+        if(lore == null)
+            return null;
+        return new ArrayList<>(lore);
     }
 
     public void setLore(@Nullable List<String> lore) {
@@ -414,6 +418,8 @@ public class Item {
      */
     @Nullable
     public List<Enchant> getEnchantList() {
+        if(enchantList == null)
+            return null;
         return new ArrayList<>(enchantList);
     }
 
@@ -450,6 +456,8 @@ public class Item {
      */
     @Nullable
     public List<ItemFlag> getFlags() {
+        if(flags == null)
+            return null;
         return new ArrayList<>(flags);
     }
 
@@ -486,6 +494,8 @@ public class Item {
      */
     @Nullable
     public List<ItemAttribute> getAttributes() {
+        if(attributes == null)
+            return null;
         return new ArrayList<>(attributes);
     }
 

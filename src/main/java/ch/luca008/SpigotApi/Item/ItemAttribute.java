@@ -23,7 +23,7 @@ public class ItemAttribute {
         try {
             JSONObject j = (JSONObject) new JSONParser().parse(json);
             attribute = Attribute.valueOf((String)j.get("Attribute"));
-            UUID uuid = UUID.fromString((String)j.get("UUID"));
+            UUID uuid = j.containsKey("UUID") ? UUID.fromString((String)j.get("UUID")) : UUID.randomUUID();
             String name = (String)j.get("Name");
             double value = (double)j.get("Value");
             AttributeModifier.Operation operation = j.containsKey("Operation") ? AttributeModifier.Operation.valueOf((String)j.get("Operation")) : AttributeModifier.Operation.ADD_NUMBER;

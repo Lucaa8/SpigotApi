@@ -1,5 +1,6 @@
 package ch.luca008.SpigotApi.Api;
 
+import ch.luca008.SpigotApi.Api.Events.NPCEvent;
 import ch.luca008.SpigotApi.Packets.ApiPacket;
 import ch.luca008.SpigotApi.Packets.EntityPackets;
 import ch.luca008.SpigotApi.SpigotApi;
@@ -219,12 +220,22 @@ public class NPCApi {
         }
 
         protected void spawn(Collection<? extends Player> players){
-            createPackets().send(players);
-            Bukkit.getScheduler().runTaskLater(SpigotApi.getInstance(), ()->EntityPackets.removeEntity(this.uuid).send(players),10L);
+            NPCEvent spawnEvent = new NPCEvent(this, getLocation(), new ArrayList<>(players), NPCEvent.NpcEventType.SPAWN);
+            Bukkit.getPluginManager().callEvent(spawnEvent);
+            if(!spawnEvent.isCancelled())
+            {
+                createPackets().send(players);
+                Bukkit.getScheduler().runTaskLater(SpigotApi.getInstance(), ()->EntityPackets.removeEntity(this.uuid).send(players),10L);
+            }
         }
 
         protected void despawn(Collection<? extends Player> players){
-            removePackets().send(players);
+            NPCEvent despawnEvent = new NPCEvent(this, getLocation(), new ArrayList<>(players), NPCEvent.NpcEventType.DESPAWN);
+            Bukkit.getPluginManager().callEvent(despawnEvent);
+            if(!despawnEvent.isCancelled())
+            {
+                removePackets().send(players);
+            }
         }
 
         protected void despawn()
