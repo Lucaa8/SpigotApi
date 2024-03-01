@@ -116,6 +116,8 @@ public void onPlayerMessage(AsyncPlayerChatEvent e)
 ```
 That's a dummy example, but you get the point. In most cases you do not care about being similar, but if you want to create some challenges for your players like "Having a sharp 1 diamond sword in your inventory to complete this challenge" you can use `Item#isSimilar(ItemStack, Player)`. You can pass `null` for the Player arg for all Items but Books which contains [BookMeta](#book-meta) with a `{P}` placeholder.
 
+**Item#equals only checks basic stuff like item's uid and material.** If Item#uid is null then it won't even work.
+
 ## Storing your items
 In this section you'll learn how to export your item in a JSON file and then import it back. (100% working between all SpigotApi's supported versions. E.g. you can export an item in 1.20.1 and import it back in 1.20.4)
 
