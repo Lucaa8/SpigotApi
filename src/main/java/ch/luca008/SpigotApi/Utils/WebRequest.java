@@ -7,6 +7,7 @@ import org.json.simple.parser.ParseException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
@@ -15,6 +16,7 @@ import java.util.function.BiFunction;
 
 public class WebRequest {
 
+    private static String gitVersionUrl = "https://raw.githubusercontent.com/Lucaa8/SpigotApi/master/version.md";
     public static String nameFinderUrl = "https://api.mojang.com/users/profiles/minecraft/";
     public static BiFunction<String, Boolean, String> textureFinderUrl = (uuid, signed) -> "https://sessionserver.mojang.com/session/minecraft/profile/"+uuid+"?unsigned=" + (!signed);
 
@@ -55,4 +57,19 @@ public class WebRequest {
         }
         return null;
     }
+
+    @Nullable
+    public static String getLastPluginVersion()
+    {
+        try {
+            URL url = new URL(gitVersionUrl);
+            String line;
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()))) {
+                line = reader.readLine();
+            }
+            return line.replace("\n", "");
+        } catch (IOException ignored) {} //error log is created in the SpigotApi#checkVersion method
+        return null;
+    }
+
 }

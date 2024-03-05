@@ -70,7 +70,7 @@ public class ReflectionApi {
         {
             Logger.error("Failed to find a suitable MC version for SpigotApi. Some of the functionalities like Team, Scoreboard, NPC, etc.. Api wont be enabled.");
         } else {
-            Logger.info("Found Minecraft server with protocol version " + SERVER_VERSION.protocol + " which SpigotApi can use to deliver your code a lot of packets!");
+            Logger.info("Successfully detected Minecraft server with protocol version " + SERVER_VERSION.protocol + ". SpigotApi is now fully operational. You can find all the documentation in the readme at https://github.com/Lucaa8/SpigotApi");
         }
 
     }
