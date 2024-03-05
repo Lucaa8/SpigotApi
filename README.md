@@ -23,6 +23,9 @@ Currently, the SpigotApi only supports the 1.20 to 1.20.4 Spigot/Paper version. 
 ## Documentation and examples
 Find all the documentation you need to use this API in the `examples` folder. You have one markdown file for each API in the features section.
 
+## JavaDoc
+This plugin includes JavaDoc documentation accessible upon downloading the artifact from Maven. However, the current JavaDoc is not good and not complete, as it primarily served as personal reminders for critical details. I plan to enhance this documentation in future versions of SpigotApi to facilitate its use during coding. In the meantime, I recommend referring to the detailed documentation outlined in the previous section for complete guidance.
+
 ## Download
 Get the latest version of SpigotApi [here](https://mvn.luca-dc.ch/repository/dev-mc/ch/luca008/SpigotApi/latest/SpigotApi-latest.jar) and put it inside your plugins folder. \
 **Current version of SpigotApi:** 2.1
@@ -47,3 +50,18 @@ You can get SpigotApi as a maven dependency in your project.
   <scope>provided</scope>
 </dependency>
 ```
+
+## Built With
+
+* [IntelliJ IDEA](https://www.jetbrains.com/idea/) - Using Maven
+* [Spigot](https://hub.spigotmc.org/)
+
+## Author(s)
+
+The entire code was written by me.
+
+## License
+ 
+This project is licensed under the GPLv3
+ 
+![GNU GPLV3](https://imgur.com/imkUoGR.png)
