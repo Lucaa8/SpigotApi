@@ -17,7 +17,7 @@ Currently, the SpigotApi only supports the 1.20 to 1.20.4 Spigot/Paper version. 
 - **NPCApi** - Create basic NPCs which look at the player in game, put them skins, easy-to-setup interaction manager.
 - **PromptApi** - Open a sign to a player and wait for their response, do whatever you want with it inside a sync. callback.
 - **NBTTagApi** - Add NBTs on your items to retrieve them easily in inventories
-- **SnifferApi** - Listen to every packets a player receive
+- **SnifferApi** - Listen to every packets a player sends to the server
 - **JSONApi** - Store and read information easily in JSON instead of YAML
 - **FileApi** - List and export all the inner files inside your plugin (default configs, lang files, etc...)
 - **Items** - An unique way to create, customize, compare and store items easily without YAML or NBT problems.
