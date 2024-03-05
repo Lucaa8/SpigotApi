@@ -1,7 +1,7 @@
 # Items
 
 ## Disclaimer
-This feature is still in its early stages. Despite extensive testing, certain highly specific behaviors may cause unpredictable issues. Please report any problematic code you encounter.
+This feature is still in its early stages. Despite extensive testing, certain highly specific behaviors may cause unpredictable issues. Please report any problematic code you encounter in the [Discussions](https://github.com/Lucaa8/SpigotApi/discussions) tab.
 
 ## Description
 This is not an "API" but rather a powerful tool so it's worth presenting it because it can save you a lot of time and code to create and store Minecraft items without worring about Bukkit API version. There is a "base" which contains all the standard item meta like _display name_, _lore_, _enchantements_, _custom data_ and more... Then there are some more specific metas like _potion_, _skull_ and more.
