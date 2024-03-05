@@ -1,4 +1,6 @@
 # SpigotApi
+**Despite the name, this plugin is not affiliated, maintained, sponsored, or endorsed by [Spigot](https://hub.spigotmc.org/).** Moreover, please note that despite extensive testing, certain highly specific behaviors may cause unpredictable issues. Please report any problematic code you encounter at lucadicosola4@gmail.com.
+
 ## Description
 SpigotApi enhances the capabilities of the standard Bukkit/Spigot API, enabling sophisticated functionalities not fully supported by default. Initially developed for legacy Minecraft versions such as 1.12 or 1.15, SpigotApi addressed the challenges of utilizing NMS (Net Minecraft Server) code due to frequent changes in package names across versions, which made direct access less straightforward. However, from version 1.17 onwards, accessing these packages without the need for reflection has become feasible, allowing more direct usage. Despite this, a thorough understanding of the Minecraft server's internals, from obfuscated enums to packet handling, is essential. SpigotApi simplifies this process, handling the complex aspects so you can easily implement advanced methods within your plugins.
 
