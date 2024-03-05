@@ -12,21 +12,21 @@ Currently, the SpigotApi only supports the 1.20 to 1.20.4 Spigot/Paper version. 
 - 1.20.4
 
 ## Features
-- **TeamApi** - Create your custom teams and ranks with custom prefixes, suffixes, colors and more..
-- **ScoreboardApi** - Create multiples scoreboards with default values (placeholders), set them to your players and update them easily whenever you want!
+- **TeamApi** - Create your custom teams and ranks with custom prefixes, suffixes, colors, tab order and more..
+- **ScoreboardApi** - Provides a straightforward way to manage dynamic scoreboards with placeholders that can be changed effortlessly at any time.
 - **NPCApi** - Create basic NPCs which look at the player in game, put them skins, easy-to-setup interaction manager.
-- **PromptApi** - Open a sign to a player and wait for their response, do whatever you want with it inside a sync. callback.
+- **PromptApi** - Enables you to open a sign prompt for a player and await their response, allowing you to execute any desired action with the input inside a sync. callback.
 - **NBTTagApi** - Add NBTs on your items to retrieve them easily in inventories
 - **SnifferApi** - Listen to every packets a player sends to the server
 - **JSONApi** - Store and read information easily in JSON instead of YAML
-- **FileApi** - List and export all the inner files inside your plugin (default configs, lang files, etc...)
+- **FileApi** - Streamlines the extraction of embedded resources, making it effortless to manage and deploy plugin assets and configurations
 - **Items** - An unique way to create, customize, compare and store items easily without YAML or NBT problems.
 
 ## Documentation and examples
-Find all the documentation you need to use this API in the `examples` folder. You have one markdown file for each API in the features section.
+Find all the documentation you need to use this API in the `examples` directory. You have one markdown file for each API from the features section.
 
 ## JavaDoc
-This plugin includes JavaDoc documentation accessible upon downloading the artifact from Maven. However, the current JavaDoc is not good and not complete, as it primarily served as personal reminders for critical details. I plan to enhance this documentation in future versions of SpigotApi to facilitate its use during coding. In the meantime, I recommend referring to the detailed documentation outlined in the previous section for complete guidance.
+This plugin includes a JavaDoc documentation accessible upon downloading the artifact from Maven. However, the current JavaDoc is not good and not complete, as it primarily served as personal reminders for critical details. I plan to enhance this documentation in future versions of SpigotApi to facilitate its use during coding. In the meantime, I recommend referring to the detailed documentation outlined in the previous section for complete guidance.
 
 ## Download
 Get the latest version of SpigotApi [here](https://mvn.luca-dc.ch/repository/dev-mc/ch/luca008/SpigotApi/latest/SpigotApi-latest.jar) and put it inside your plugins folder. \
