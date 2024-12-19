@@ -49,6 +49,15 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
+                <configuration>
+                    <outputDirectory>C:\Users\lucad\Desktop\Test\Test1204\plugins</outputDirectory>
+                    <finalName>SpigotApi</finalName>
+                </configuration>
+            </plugin>
         </plugins>
         <sourceDirectory>src/main/java</sourceDirectory>
         <defaultGoal>clean package</defaultGoal>
