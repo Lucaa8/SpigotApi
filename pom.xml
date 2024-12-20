@@ -12,8 +12,8 @@
     <description>Methods to help with net.minecraft.server and org.bukkit classes</description>
 
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <mainClass>ch.luca008.SpigotApi.SpigotApi</mainClass>
     </properties>
@@ -54,7 +54,7 @@
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>3.4.2</version>
                 <configuration>
-                    <outputDirectory>C:\Users\lucad\Desktop\Test\Test1204\plugins</outputDirectory>
+                    <outputDirectory>C:\Users\lucad\Desktop\Servers\1_Skyblock_1204\plugins</outputDirectory>
                     <finalName>SpigotApi</finalName>
                 </configuration>
             </plugin>
