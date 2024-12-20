@@ -33,7 +33,7 @@ public class PacketsUtils {
         ENUM_GAMEMODE = ReflectionApi.getNMSClass("world.level", "EnumGamemode");
         mappings.put(CHAT_COMPONENT, new ClassMapping(ReflectionApi.getNMSClass("network.chat", "IChatBaseComponent"), new HashMap<>(), new HashMap<>(){{ put("literal", "a"); }}));
         mappings.put(ENTITY_PLAYER, new ClassMapping(ReflectionApi.getNMSClass("server.level", "EntityPlayer"), new HashMap<>(){{ put("connection", "c"); }}, new HashMap<>()));
-        mappings.put(CHAT_COLOR, new ClassMapping(ReflectionApi.getNMSClass("", "EnumChatFormat"), new HashMap<>(), new HashMap<>(){{ put("byName", "b"); }}));
+        mappings.put(CHAT_COLOR, new ClassMapping(ReflectionApi.getNMSClass("", "EnumChatFormat"), new HashMap<>(), new HashMap<>(){{ put("getChar", "a"); put("byName", "b"); }}));
 
         Class<?> playerConn;
         String fieldConn;
@@ -90,6 +90,10 @@ public class PacketsUtils {
         public Enum<?> getEnumValue()
         {
             return mcEnumChatColor;
+        }
+        public char getChar()
+        {
+            return (char) mappings.get(CHAT_COLOR).invoke(null, "getChar", new Class[]{String.class}, this.name());
         }
 
     }
