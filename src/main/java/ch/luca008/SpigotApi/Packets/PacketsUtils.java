@@ -33,7 +33,7 @@ public class PacketsUtils {
         ENUM_GAMEMODE = ReflectionApi.getNMSClass("world.level", "EnumGamemode");
         mappings.put(CHAT_COMPONENT, new ClassMapping(ReflectionApi.getNMSClass("network.chat", "IChatBaseComponent"), new HashMap<>(), new HashMap<>(){{ put("literal", "a"); }}));
         mappings.put(ENTITY_PLAYER, new ClassMapping(ReflectionApi.getNMSClass("server.level", "EntityPlayer"), new HashMap<>(){{ put("connection", "c"); }}, new HashMap<>()));
-        mappings.put(CHAT_COLOR, new ClassMapping(ReflectionApi.getNMSClass("", "EnumChatFormat"), new HashMap<>(), new HashMap<>(){{ put("getChar", "a"); put("byName", "b"); }}));
+        mappings.put(CHAT_COLOR, new ClassMapping(ReflectionApi.getNMSClass("", "EnumChatFormat"), new HashMap<>(), new HashMap<>(){{ put("getChar", "a"); put("byCode", "a"); put("byName", "b"); }}));
 
         Class<?> playerConn;
         String fieldConn;
@@ -87,13 +87,29 @@ public class PacketsUtils {
         {
             mcEnumChatColor = (Enum<?>) mappings.get(CHAT_COLOR).invoke(null, "byName", new Class[]{String.class}, this.name());
         }
+
+        /**
+         * 'a' will return GREEN, 'b' will return AQUA, etc...
+         * @param code a character between 0-9 or a-k
+         * @return The ChatColor component or RESET if not found
+         */
+        public static ChatColor getByCode(char code)
+        {
+            ChatColor color = ChatColor.RESET;
+            Enum<?> value = (Enum<?>) mappings.get(CHAT_COLOR).invoke(null, "byCode", new Class[]{char.class}, code);
+            if(value != null)
+            {
+                color = ChatColor.valueOf(value.name());
+            }
+            return color;
+        }
         public Enum<?> getEnumValue()
         {
             return mcEnumChatColor;
         }
         public char getChar()
         {
-            return (char) mappings.get(CHAT_COLOR).invoke(null, "getChar", new Class[]{String.class}, this.name());
+            return (char) mappings.get(CHAT_COLOR).invoke(getEnumValue(), "getChar", new Class[0]);
         }
 
     }
