@@ -210,7 +210,7 @@ public class ScoreboardAPI {
             if(pLine!=null&&!pLine.text.equals(finalLine)){
                 String oldText = pLine.text;
                 pLine.setText(finalLine);
-                ScoreboardsPackets.updateScore(parentBoard, pLine.lineId, oldText, finalLine, playerLines.size()-pLine.line-1).send(player);
+                ScoreboardsPackets.updateScore(parentBoard, pLine.lineId, oldText, finalLine, playerLines.size()-pLine.line).send(player);
             }
         }
 

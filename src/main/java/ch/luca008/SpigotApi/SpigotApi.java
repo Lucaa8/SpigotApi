@@ -64,6 +64,11 @@ public class SpigotApi extends JavaPlugin {
         return scoreboardApi;
     }
 
+    /**
+     * The NBTTag Api is deprecated and subject to removal from Minecraft 1.20.5 and later.
+     * @return An API which let you manipulate NBTs inside items.
+     */
+    @Deprecated
     public static NBTTagApi getNBTTagApi(){
         return nbttagApi;
     }
