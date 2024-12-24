@@ -17,7 +17,9 @@ public class ScoreboardsPackets {
     private static final Class<?> DISPLAY_SLOT;
     private static final Class<?> SCORE_ACTION;
     private static final Class<?> RENDER_TYPE;
+    //For 1.20.4 and later
     private static final Class<?> NUMBER_FORMAT;
+    private static final Class<?> BLANK_FORMAT;
 
     private static final String SET_OBJECTIVE = "SetObjectivePacket";
     private static final String DISPLAY_OBJECTIVE = "SetDisplayObjectivePacket";
@@ -38,12 +40,14 @@ public class ScoreboardsPackets {
             mappings.put(SET_SCORE, new ClassMapping(setScorePacketClass, new HashMap<>(){{ put("owner", "a"); put("objectiveName", "b"); put("score", "c"); put("method", "d"); }}, new HashMap<>()));
             SCORE_ACTION = ReflectionApi.getNMSClass("server", "ScoreboardServer$Action");
             NUMBER_FORMAT = null;
+            BLANK_FORMAT = null;
         } else {
             mappings.put(SET_OBJECTIVE, new ClassMapping(setObjPacketClass, new HashMap<>(){{ put("objectiveName", "d"); put("displayName", "e"); put("renderType", "f"); put("numberFormat", "g"); put("method", "h"); }}, new HashMap<>()));
             mappings.put(SET_SCORE, new ClassMapping(setScorePacketClass, new HashMap<>(), new HashMap<>()));
             mappings.put(RESET_SCORE, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "ClientboundResetScorePacket"), new HashMap<>(), new HashMap<>()));
             SCORE_ACTION = null;
             NUMBER_FORMAT = ReflectionApi.getNMSClass("network.chat.numbers", "NumberFormat");
+            BLANK_FORMAT = ReflectionApi.getNMSClass("network.chat.numbers", "BlankFormat");
         }
 
         mappings.put(DISPLAY_OBJECTIVE, new ClassMapping(ReflectionApi.getNMSClass(protocolPackage, "PacketPlayOutScoreboardDisplayObjective"), new HashMap<>(){{ put("slot", "a"); put("objectiveName", "b"); }}, new HashMap<>()));
@@ -107,7 +111,7 @@ public class ScoreboardsPackets {
     }
 
     /**
-     * Create, update or delete a client-side objective.
+     * Create, update or delete a client-side objective. From Minecraft 1.20.3/4 and later, red scores values will be hidden.
      * @param uniqueName a unique identifier for this objective. Will be used later on to display the objective and add scores to it.
      * @param displayName a title for this scoreboard. Maybe null if mode == Mode.REMOVE
      * @param mode a mode to tell the client what to do with this packet. See {@link Mode}
@@ -115,14 +119,17 @@ public class ScoreboardsPackets {
      */
     public static ApiPacket objective(Mode mode, String uniqueName, @Nullable String displayName, @Nullable RenderType type)
     {
-        Object packet = mappings.get(SET_OBJECTIVE)
+        ReflectionApi.ObjectMapping packetBuilder = mappings.get(SET_OBJECTIVE)
                 .unsafe_newInstance()
                 .set("objectiveName", uniqueName)
                 .set("displayName", PacketsUtils.getChatComponent(displayName))
                 .set("renderType", type == null ? null : type.getRenderType())
-                .set("method", mode.method)
-                .packet();
-        return ApiPacket.create(packet);
+                .set("method", mode.method);
+        if(ReflectionApi.SERVER_VERSION == Version.MC_1_20_3)
+        {
+            packetBuilder.set("numberFormat", ReflectionApi.getStaticField(BLANK_FORMAT, "a"));
+        }
+        return ApiPacket.create(packetBuilder.packet());
     }
 
     /**
