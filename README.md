@@ -29,7 +29,7 @@ Find all the documentation you need to use this API in the `examples` directory.
 This plugin includes a JavaDoc documentation accessible upon downloading the artifact from Maven. However, the current JavaDoc is not good and not complete, as it primarily served as personal reminders for critical details. I plan to enhance this documentation in future versions of SpigotApi to facilitate its use during coding. In the meantime, I recommend referring to the detailed documentation outlined in the previous section for complete guidance.
 
 ## Download
-Get the latest version of SpigotApi [here](https://mvn.luca-dc.ch/repository/dev-mc/ch/luca008/SpigotApi/latest/SpigotApi-latest.jar) and put it inside your plugins folder. \
+Get the latest version of SpigotApi [here](https://mvn.luca-dc.ch/repository/dev-mc/ch/luca008/SpigotApi/2.1.3/SpigotApi-2.1.3.jar) and put it inside your plugins folder. \
 **Current version of SpigotApi:** 2.1.3
 
 ## How to use it?
