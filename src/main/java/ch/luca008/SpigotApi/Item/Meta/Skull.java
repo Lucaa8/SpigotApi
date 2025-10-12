@@ -13,9 +13,21 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.json.simple.JSONObject;
 
 import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 public class Skull implements Meta{
+
+    private record TextureCache(String texture, long lastRequest, long cacheDuration){
+        public boolean isCacheValid() {
+            return (System.currentTimeMillis() - lastRequest) < cacheDuration;
+        }
+    }
+
+    private static final Map<String, TextureCache> textureCache = new HashMap<>();
 
     public enum SkullOwnerType{
         PLAYER, //A dynamic custom player (with applyOwner(UniPlayer)) (owner = null)
@@ -24,20 +36,30 @@ public class Skull implements Meta{
     }
     private SkullOwnerType type = null;
     private String owner = null; //si player = p.ex "Luca008" et si Custom = p.ex "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOTZhM2JiYTJiN2EyYjRmYTQ2OTQ1YjE0NzE3NzdhYmU0NTk5Njk1NTQ1MjI5ZTc4MjI1OWFlZDQxZDYifX19"
+    // Only used when type is PSEUDO:
+    //   stores the texture for this current "owner" the first time a web request is done, for the next specified time in MS
+    //   can be set to 0L in json config to disable caching (mojang servers are called every time Skull#apply is called with type==PSEUDO)
+    private long useCache = 3600_000L;
 
     public Skull(JSONObject json){
         if(json.containsKey("Type")){
             type = SkullOwnerType.valueOf((String)json.get("Type"));
         }
-        if(type!=null&&type!=SkullOwnerType.PLAYER){
-            if(json.containsKey("Owner")){
-                owner = (String) json.get("Owner");
-            }
+        if(type!=null&&type!=SkullOwnerType.PLAYER&&json.containsKey("Owner")){
+            owner = (String) json.get("Owner");
+        }
+        if(type!=null&&type==SkullOwnerType.PSEUDO&&json.containsKey("UseCache")){
+            useCache = ((Long) json.get("UseCache")) * 1000;
         }
     }
     public Skull(SkullOwnerType type, String owner){
         this.type = type;
         this.owner = owner;
+    }
+    public Skull(SkullOwnerType type, String owner, long useCacheMS){
+        this.type = type;
+        this.owner = owner;
+        this.useCache = useCacheMS;
     }
 
     @Override
@@ -77,9 +99,9 @@ public class Skull implements Meta{
     public ItemStack apply(ItemStack item) {
         if(item==null||item.getType()!=Material.PLAYER_HEAD||item.getItemMeta()==null||type==null||type==SkullOwnerType.PLAYER)return item;
         if(type==SkullOwnerType.PSEUDO){
-            ApiProperty textures = WebRequest.getSkin(owner, false);
-            if(textures != null)
-                return SpigotApi.getNBTTagApi().getNBT(item).addSkullTexture(owner, textures.value()).getBukkitItem();
+            String texture = getTextureOrFetch();
+            if(texture != null)
+                return SpigotApi.getNBTTagApi().getNBT(item).addSkullTexture(owner, texture).getBukkitItem();
             Logger.warn("Cannot apply null texture to skull item. (Failed to fetch textures for name " + owner + ").", Skull.class.getName());
             return item;
         }else return SpigotApi.getNBTTagApi().getNBT(item).addSkullTexture("Custom", owner).getBukkitItem();
@@ -97,6 +119,48 @@ public class Skull implements Meta{
         return type;
     }
 
+    public CompletableFuture<String> updateCache() {
+        CompletableFuture<String> future = new CompletableFuture<>();
+        if(type==null||type!=SkullOwnerType.PSEUDO||useCache<=0L){
+            future.complete("");
+        } else {
+            textureCache.remove(owner);
+            ApiProperty textures = WebRequest.getSkin(owner, false);
+            if(textures==null){
+                future.complete("");
+            } else {
+                String skin = textures.value();
+                textureCache.put(owner, new TextureCache(skin, System.currentTimeMillis(), useCache));
+                future.complete(skin);
+            }
+        }
+        return future;
+    }
+
+    @Nullable
+    private String getTextureOrFetch(){
+        if(type==null||type!=SkullOwnerType.PSEUDO)
+            return null;
+        // This skull meta does not use cache
+        if(useCache<=0L){
+            ApiProperty textures = WebRequest.getSkin(owner, false);
+            return textures == null ? null : textures.value();
+        }
+        if(textureCache.containsKey(owner)){
+            TextureCache cache = textureCache.get(owner);
+            if(cache.isCacheValid())
+                return cache.texture;
+        }
+        try {
+            // In this case we are waiting synchronously the response because this method will be called in "apply" method and
+            // cannot be async. (The method calling for Item#toItemStack() should be async tho)
+            String texture = updateCache().get();
+            return texture.isEmpty() ? null : texture;
+        } catch (InterruptedException | ExecutionException e) {
+            return null;
+        }
+    }
+
     @Override
     public JSONObject toJson(){
         JSONObject j = new JSONObject();
@@ -106,6 +170,7 @@ public class Skull implements Meta{
         if(owner!=null){
             j.put("Owner", owner);
         }
+        j.put("UseCache", useCache/1000);
         return j;
     }
 

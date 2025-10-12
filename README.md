@@ -30,7 +30,7 @@ This plugin includes a JavaDoc documentation accessible upon downloading the art
 
 ## Download
 Get the latest version of SpigotApi [here](https://mvn.luca-dc.ch/repository/dev-mc/ch/luca008/SpigotApi/latest/SpigotApi-latest.jar) and put it inside your plugins folder. \
-**Current version of SpigotApi:** 2.1
+**Current version of SpigotApi:** 2.1.3
 
 ## How to use it?
 You can get SpigotApi as a maven dependency in your project.
@@ -48,7 +48,7 @@ You can get SpigotApi as a maven dependency in your project.
 <dependency>
   <groupId>ch.luca008</groupId>
   <artifactId>SpigotApi</artifactId>
-  <version>latest</version>
+  <version>2.1.3</version>
   <scope>provided</scope>
 </dependency>
 ```
