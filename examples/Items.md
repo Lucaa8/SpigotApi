@@ -169,13 +169,31 @@ The Main effect is one the default effect you can retrieve inside the _Food & Dr
 
 As you can see, the Speed II 1m30 default effect is applied, as well as the two other secondary customizable effects. The _BLINDNESS_ effect icon is displayed on the upper right part of the screen (when the player is not in his inventory) but the _FAST_DIGGING_ (Efficiency) is not (addEffectWithoutIcon).
 
-## Leather Color Meta
-This Meta is only for Leather armor pieces and not for [trimming](#trim-armor-meta). With the Leather Color Meta you can set the default color of Minecraft or any customizable RGB value. 
+## Trim Armor Meta
+This Meta is used to create patterns on armors. It can be applied on any armor piece like _IRON_CHESTPLATE_, _DIAMOND_BOOTS_, ... (**Excluding Leather pieces**, please check the next section)
+```java
+Item item = new ItemBuilder()
+        .setMaterial(Material.IRON_CHESTPLATE)
+        .setMeta(new TrimArmor(TrimMaterial.EMERALD, TrimPattern.COAST))
+        .createItem();
+```
+
+![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/4c662cdd-bb72-48b4-a248-250296887f79)
+
+## Leather Color Meta (And Armor Trim since v2.2)
+With the Leather Color Meta you can colore Leather armor pieces with default Minecraft colors or any RGB value. You can also set the Armor Trim Meta here for Leather pieces only. \
+**Note:** In `SpigotApi` v2.1.3 and earlier, the `ArmorTrimMeta` was not included in the `LeatherColorMeta`. As a result, it’s not possible to have both applied to your leather armor pieces.
 ```java
 Item item = new ItemBuilder()
         .setMaterial(Material.LEATHER_CHESTPLATE)
-        .setMeta(new LeatherArmor(Color.ORANGE))
-        //.setMeta(new LeatherArmor(Color.fromRGB(r, g, b)))
+        // Blue piece with no Trim meta
+        .setMeta(new LeatherArmor(Color.BLUE, null, null))
+        // Custom RGB piece with no Trim meta
+        .setMeta(new LeatherArmor(Color.fromRGB(r, g, b), null, null))
+        // Default Color Leather piece (Brown) with Trim meta
+        .setMeta(new LeatherArmor(null, TrimPattern.EYE, TrimMaterial.AMETHYST))
+        // Colored piece with Trim meta
+        .setMeta(new LeatherArmor(Color.RED, TrimPattern.EYE, TrimMaterial.AMETHYST))
         .createItem();
 ```
 
@@ -188,18 +206,6 @@ If you want to hide the _Color:_ description, you can add the Flag _HIDE_DYE_ to
 .addFlag(ItemFlag.HIDE_DYE)
 ...
 ```
-
-## Trim Armor Meta
-This Meta is used to create patterns on armors. It can be applied on any armor piece like _IRON_CHESTPLATE_, _DIAMOND_BOOTS_, ...
-```java
-Item item = new ItemBuilder()
-        .setMaterial(Material.IRON_CHESTPLATE)
-        .setMeta(new TrimArmor(TrimMaterial.EMERALD, TrimPattern.COAST))
-        .createItem();
-```
-
-![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/4c662cdd-bb72-48b4-a248-250296887f79)
-
 
 ## Skull Meta
 The Skull Meta is a little bit more complex as it can be applied dynamically on any player. In fact there are three distincts types of applicable meta for the Skulls.
@@ -231,8 +237,18 @@ Item item = new ItemBuilder()
         .setMeta(new Skull(Skull.SkullOwnerType.PSEUDO, /*Set a player's name*/ "Luca008"))
         .createItem();
 ```
-P.S.1: Please note that this functionality has been tested in online mode. I have no idea if this works in offline server (without mojang auth). \
-P.S.2: The server is fetching the Mojang servers and it can take some time + you can get rate limited if you spam the item's creation. Consider creating the ItemStack only once and thn storing it inside a var.
+
+#### Offline mode
+The method described above only works for online servers (i.e., those that require Mojang authentication). This is because, in offline mode, UUIDs for usernames are generated locally by the server. When the Spigot API attempts to fetch the texture for a given username, it first retrieves the UUID associated with that name, then requests the corresponding texture. However, if your server generates pseudo-random UUIDs, there’s a high chance that Mojang has no record of them. **One way to resolve this issue is to install the [SkinRestorer](https://www.spigotmc.org/resources/skinsrestorer.2124/) plugin on your server.** Without any additional configuration, skull fetching will be fixed and work as intended!
+
+#### Fetch Cache (Since v2.1.3)
+This method re-fetches the texture each time you attempt to build an `ItemStack` from the `Item`. If the item is only built once and stored in a runtime variable, this won’t be a significant issue. However, if the item is frequently built, it can impact server performance since fetching the texture is relatively slow (approximately one second per fetch). To address this, a cache can be configured for `SkullMeta` when using the PSEUDO method:
+```java
+Item skull = ...
+        .setMeta(new Skull(Skull.SkullOwnerType.PSEUDO, "Luca008", /*Cache duration in seconds*/ 43200))
+...
+```
+The cache duration is defined in seconds. If no value is specified, the default is **3600 seconds (1 hour)**. You can disable caching (at your own risk) by setting the value to `0`.
 
 ### PLAYER
 The last one is easy to create but needs a little bit of understanding. When you set the type to `SkullOwnerType.PLAYER`, you do not set any data right now. The data will be determined when the itemstack is **created** only. It will target the player who will receive the head. So you'll need to call the `Item#toItemStack(amount, PLAYER);` (or `Item#giveOrDrop(PLAYER, amount)`) or it wont work.
