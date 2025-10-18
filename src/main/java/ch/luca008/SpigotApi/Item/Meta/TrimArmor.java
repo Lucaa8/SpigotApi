@@ -18,10 +18,12 @@ import javax.annotation.Nullable;
 
 public class TrimArmor implements Meta{
 
-    private TrimMaterial material = TrimMaterial.AMETHYST;
-    private TrimPattern pattern = TrimPattern.COAST;
+    protected TrimMaterial material = TrimMaterial.AMETHYST;
+    protected TrimPattern pattern = TrimPattern.COAST;
 
-    public TrimArmor(JSONObject json) {
+    public TrimArmor(@Nullable JSONObject json) {
+        // This check is to allow LeatherArmor meta to NOT have a TrimArmor meta
+        if(json == null) return;
         JSONApi.JSONReader r = SpigotApi.getJSONApi().getReader(json);
         if(r.c("Pattern")) {
             pattern = Registry.TRIM_PATTERN.get(NamespacedKey.minecraft(r.getString("Pattern")));
@@ -35,18 +37,18 @@ public class TrimArmor implements Meta{
         }
     }
 
-    public TrimArmor(@Nonnull TrimMaterial trimMaterial, @Nonnull TrimPattern trimPattern) {
-        this.material = trimMaterial;
-        this.pattern = trimPattern;
+    public TrimArmor(TrimMaterial trimMaterial, TrimPattern trimPattern) {
+        if(trimMaterial != null) {
+            this.material = trimMaterial;
+        }
+        if(trimPattern != null) {
+            this.pattern = trimPattern;
+        }
     }
 
-    public TrimArmor(@Nonnull ArmorMeta armorMeta) {
-        if(armorMeta.hasTrim()){
-            this.material = armorMeta.getTrim().getMaterial();
-            this.pattern = armorMeta.getTrim().getPattern();
-        } else {
-            Logger.warn("ArmorMeta#hasTrim returned false during the creation of a TrimArmor meta. Some default values will be used.", TrimArmor.class.getName());
-        }
+    public TrimArmor(@Nonnull ArmorTrim armorMeta) {
+        this.material = armorMeta.getMaterial();
+        this.pattern = armorMeta.getPattern();
     }
 
     @Override
@@ -79,17 +81,15 @@ public class TrimArmor implements Meta{
 
     @Override
     public boolean hasSameMeta(ItemStack item, @Nullable OfflinePlayer player) {
-        if(item!=null&& item.getItemMeta() instanceof ArmorMeta am){
-            return am.hasTrim() && am.getTrim().getPattern().equals(this.pattern) && am.getTrim().getMaterial().equals(this.material);
+        // DO NOT REPLACE ArmorMeta by ArmorTrim because LeatherArmor meta is of type ColorableArmorMeta which DOES NOT extend ArmorTrim
+        if(item != null && item.getItemMeta() instanceof ArmorMeta am && am.hasTrim()){
+            return am.getTrim().getPattern().equals(this.pattern) && am.getTrim().getMaterial().equals(this.material);
         }
         return false;
     }
 
     public static boolean hasMeta(ItemStack item){
-        if(item.getItemMeta() instanceof ArmorMeta){
-            return ((ArmorMeta) item.getItemMeta()).hasTrim();
-        }
-        return false;
+        return item.getItemMeta() instanceof ArmorMeta m && m.hasTrim();
     }
 
 }
