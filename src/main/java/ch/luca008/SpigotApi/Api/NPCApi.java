@@ -209,33 +209,44 @@ public class NPCApi {
         {
             if(this.isActive == isActive)
                 return;
-            this.isActive = isActive;
+            boolean success;
             if(isActive)
-                spawn(affectedPlayers());
+                success = spawn(affectedPlayers());
             else
-                despawn(affectedPlayers());
+                success = despawn(affectedPlayers());
+            // Only toggle state if (de)spawn event wasn't cancelled
+            if(success)
+                this.isActive = isActive;
         }
         public boolean isActive() {
             return this.isActive;
         }
 
-        protected void spawn(Collection<? extends Player> players){
+        protected boolean spawn(Collection<? extends Player> players){
             NPCEvent spawnEvent = new NPCEvent(this, getLocation(), new ArrayList<>(players), NPCEvent.NpcEventType.SPAWN);
             Bukkit.getPluginManager().callEvent(spawnEvent);
             if(!spawnEvent.isCancelled())
             {
                 createPackets().send(players);
+                // After reviewing, this packet may be weird here and may need more explanation;
+                // For a Minecraft client, the entity's logic and the entity's physical location in a world are two separate things
+                // In the createPackets I'm creating the entity's logic and spawning the entity in a world (the entity's physical location)
+                // If the entity's logic stays, the players would see them in the players list, command completer, online count, etc..
+                // For this reason, I'm deleting this entity from the client BUT NOT the entity's physical location in the world
+                // So the client still shows the entity at world,x,y,z but does not remember it in the players list, etc...
                 Bukkit.getScheduler().runTaskLater(SpigotApi.getInstance(), ()->EntityPackets.removeEntity(this.uuid).send(players),10L);
             }
+            return !spawnEvent.isCancelled();
         }
 
-        protected void despawn(Collection<? extends Player> players){
+        protected boolean despawn(Collection<? extends Player> players){
             NPCEvent despawnEvent = new NPCEvent(this, getLocation(), new ArrayList<>(players), NPCEvent.NpcEventType.DESPAWN);
             Bukkit.getPluginManager().callEvent(despawnEvent);
             if(!despawnEvent.isCancelled())
             {
                 removePackets().send(players);
             }
+            return !despawnEvent.isCancelled();
         }
 
         protected void despawn()
