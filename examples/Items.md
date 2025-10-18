@@ -170,7 +170,7 @@ The Main effect is one the default effect you can retrieve inside the _Food & Dr
 As you can see, the Speed II 1m30 default effect is applied, as well as the two other secondary customizable effects. The _BLINDNESS_ effect icon is displayed on the upper right part of the screen (when the player is not in his inventory) but the _FAST_DIGGING_ (Efficiency) is not (addEffectWithoutIcon).
 
 ## Trim Armor Meta
-This Meta is used to create patterns on armors. It can be applied on any armor piece like _IRON_CHESTPLATE_, _DIAMOND_BOOTS_, ... (Excluding Leather pieces, please check the next section)
+This Meta is used to create patterns on armors. It can be applied on any armor piece like _IRON_CHESTPLATE_, _DIAMOND_BOOTS_, ... (**Excluding Leather pieces**, please check the next section)
 ```java
 Item item = new ItemBuilder()
         .setMaterial(Material.IRON_CHESTPLATE)
@@ -180,8 +180,8 @@ Item item = new ItemBuilder()
 
 ![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/4c662cdd-bb72-48b4-a248-250296887f79)
 
-## Leather Color Meta
-With the Leather Color Meta you can set the default color of Minecraft or any customizable RGB value. You can also set the Trim Meta here for Leather pieces only.
+## Leather Color Meta (And Armor Trim)
+With the Leather Color Meta you can colore Leather armor pieces with default Minecraft colors or any RGB value. You can also set the Armor Trim Meta here for Leather pieces only.
 ```java
 Item item = new ItemBuilder()
         .setMaterial(Material.LEATHER_CHESTPLATE)
