@@ -180,8 +180,9 @@ Item item = new ItemBuilder()
 
 ![image](https://github.com/Lucaa8/SpigotApi/assets/47627900/4c662cdd-bb72-48b4-a248-250296887f79)
 
-## Leather Color Meta (And Armor Trim)
-With the Leather Color Meta you can colore Leather armor pieces with default Minecraft colors or any RGB value. You can also set the Armor Trim Meta here for Leather pieces only.
+## Leather Color Meta (And Armor Trim since v2.2)
+With the Leather Color Meta you can colore Leather armor pieces with default Minecraft colors or any RGB value. You can also set the Armor Trim Meta here for Leather pieces only. \
+**Note:** In `SpigotApi` v2.1.3 and earlier, the `ArmorTrimMeta` was not included in the `LeatherColorMeta`. As a result, it’s not possible to have both applied to your leather armor pieces.
 ```java
 Item item = new ItemBuilder()
         .setMaterial(Material.LEATHER_CHESTPLATE)
