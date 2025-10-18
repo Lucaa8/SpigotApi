@@ -48,7 +48,7 @@ You can get SpigotApi as a maven dependency in your project.
 <dependency>
   <groupId>ch.luca008</groupId>
   <artifactId>SpigotApi</artifactId>
-  <version>2.1.3</version>
+  <version>2.2</version>
   <scope>provided</scope>
 </dependency>
 ```
