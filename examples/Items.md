@@ -244,7 +244,7 @@ The method described above only works for online servers (i.e., those that requi
 This method re-fetches the texture each time you attempt to build an `ItemStack` from the `Item`. If the item is only built once and stored in a runtime variable, this won’t be a significant issue. However, if the item is frequently built, it can impact server performance since fetching the texture is relatively slow (approximately one second per fetch). To address this, a cache can be configured for `SkullMeta` when using the PSEUDO method:
 ```java
 Item skull = ...
-        .setMeta(new Skull(Skull.SkullOwnerType.PSEUDO, "Luca008", 43200))
+        .setMeta(new Skull(Skull.SkullOwnerType.PSEUDO, "Luca008", /*Cache duration in seconds*/ 43200))
 ...
 ```
 The cache duration is defined in seconds. If no value is specified, the default is **3600 seconds (1 hour)**. You can disable caching (at your own risk) by setting the value to `0`.
